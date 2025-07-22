@@ -1,6 +1,6 @@
 // Message type for chat messages
 export interface Message {
-  role: 'user' | 'assistant' | 'system' | 'error' | 'tool';
+  role: "user" | "assistant" | "system" | "error" | "tool";
   content: string;
   timestamp: string;
 }
@@ -9,4 +9,4 @@ export interface Message {
 export interface Tool {
   name: string;
   description: string;
-} 
+}

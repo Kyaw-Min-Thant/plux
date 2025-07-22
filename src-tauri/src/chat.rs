@@ -16,17 +16,48 @@ pub struct ChatSession {
     client: Arc<dyn ChatClient>,
     tool_set: ToolSet,
     model: String,
+    provider: String, // add provider field
     messages: Vec<Message>,
 }
 
 impl ChatSession {
-    pub fn new(client: Arc<dyn ChatClient>, tool_set: ToolSet, model: String) -> Self {
+    pub fn new(client: Arc<dyn ChatClient>, tool_set: ToolSet, model: String, provider: String) -> Self {
         Self {
             client,
             tool_set,
             model,
+            provider, // set provider
             messages: Vec::new(),
         }
+    }
+
+    // Getter for model
+    pub fn model(&self) -> &str {
+        &self.model
+    }
+    // Mutable setter for model
+    pub fn set_model(&mut self, model: String) {
+        self.model = model;
+    }
+    // Getter for messages
+    pub fn messages(&self) -> &Vec<Message> {
+        &self.messages
+    }
+    // Mutable getter for messages
+    pub fn messages_mut(&mut self) -> &mut Vec<Message> {
+        &mut self.messages
+    }
+    // Getter for client
+    pub fn client(&self) -> &Arc<dyn ChatClient> {
+        &self.client
+    }
+    // Mutable getter for client
+    pub fn client_mut(&mut self) -> &mut Arc<dyn ChatClient> {
+        &mut self.client
+    }
+
+    pub fn provider(&self) -> &str {
+        &self.provider
     }
 
     pub fn add_system_prompt(&mut self, prompt: impl ToString) {

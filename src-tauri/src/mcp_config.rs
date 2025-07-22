@@ -1,12 +1,12 @@
 use anyhow::Result;
 use rmcp::{service::RunningService, transport::ConfigureCommandExt, RoleClient, ServiceExt};
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, path::Path, process::Stdio};
-use tauri::{AppHandle, Manager};
+use std::{collections::HashMap, process::Stdio};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct McpConfig {
-    pub servers: Vec<McpServerConfig>,
+    #[serde(rename = "mcpServers")]
+    pub servers: HashMap<String, McpServerTransportConfig>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -17,7 +17,7 @@ pub struct McpServerConfig {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(tag = "protocol", rename_all = "lowercase")]
+#[serde(untagged)]
 pub enum McpServerTransportConfig {
     Streamable {
         url: String,
@@ -74,7 +74,7 @@ impl McpConfig {
         let config_path = home.join(".config/finder/mcp.json");
 
         if !config_path.exists() {
-            return Ok(McpConfig { servers: vec![] });
+            return Ok(McpConfig { servers: HashMap::new() });
         }
 
         let content = tokio::fs::read_to_string(config_path).await?;
@@ -88,33 +88,17 @@ impl McpConfig {
     ) -> Result<HashMap<String, RunningService<RoleClient, ()>>> {
         let mut clients = HashMap::new();
 
-        for server in &self.servers {
-            let client = server.transport.start().await?;
-            clients.insert(server.name.clone(), client);
+        for (name, transport_config) in &self.servers {
+            match transport_config.start().await {
+                Ok(client) => {
+                    clients.insert(name.clone(), client);
+                }
+                Err(e) => {
+                    eprintln!("Failed to start MCP server {}: {}", name, e);
+                }
+            }
         }
 
         Ok(clients)
-    }
-}
-
-/// App configuration for frontend-backend communication
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct AppConfig {
-    pub openai_key: Option<String>,
-    pub chat_url: Option<String>,
-    pub model_name: Option<String>,
-    pub proxy: Option<bool>,
-    pub support_tool: Option<bool>,
-}
-
-impl Default for AppConfig {
-    fn default() -> Self {
-        Self {
-            openai_key: None,
-            chat_url: Some("https://api.openai.com/v1/chat/completions".to_string()),
-            model_name: Some("gpt-4o-mini".to_string()),
-            proxy: Some(false),
-            support_tool: Some(true),
-        }
     }
 }

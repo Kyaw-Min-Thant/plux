@@ -1,16 +1,26 @@
-export interface McpServerConfig {
+export type StdioConfig = {
   command: string;
-  args: string[];
-  env?: Record<string, string>;
+  args?: string[];
+  envs?: Record<string, string>;
 }
 
-export interface McpConfig {
-  mcpServers: Record<string, McpServerConfig>;
+export type SseConfig = {
+  url: string;
 }
+
+export type McpServerTransportConfig =
+  | StdioConfig
+  | SseConfig
+
+
+export type McpConfig = {
+  mcpServers: Record<string, McpServerTransportConfig>;
+};
+
 
 export interface McpServerInfo {
   name: string;
-  config: McpServerConfig;
+  config: McpServerTransportConfig;
   connected: boolean;
 }
 
@@ -19,17 +29,3 @@ export interface Tool {
   description?: string;
   input_schema?: any;
 }
-
-export interface ChatMessage {
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-  timestamp: number;
-}
-
-export interface ChatRequest {
-  message: string;
-  provider: string;
-  model: string;
-}
-
-export type Provider = 'claude' | 'gpt-4o' | 'openrouter' | 'gemini';
