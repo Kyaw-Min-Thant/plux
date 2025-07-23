@@ -1,208 +1,130 @@
-use std::{
-    io::{self, Write},
-    sync::Arc,
+use futures::StreamExt;
+use rig::{
+    agent::Agent,
+    completion::{AssistantContent, CompletionModel},
+    message::Message,
+    streaming::StreamingChat,
 };
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader, BufWriter};
 
-use anyhow::Result;
-use serde_json;
+pub async fn chat_with_agent<M>(chatbot: Agent<M>) -> anyhow::Result<()>
+where
+    M: CompletionModel,
+{
+    let mut chat_log = vec![];
 
-use crate::{
-    client::ChatClient,
-    model::{CompletionRequest, Message, ToolFunction},
-    tool::{Tool as ToolTrait, ToolSet},
-};
-
-pub struct ChatSession {
-    client: Arc<dyn ChatClient>,
-    tool_set: ToolSet,
-    model: String,
-    provider: String, // add provider field
-    messages: Vec<Message>,
-}
-
-impl ChatSession {
-    pub fn new(client: Arc<dyn ChatClient>, tool_set: ToolSet, model: String, provider: String) -> Self {
-        Self {
-            client,
-            tool_set,
-            model,
-            provider, // set provider
-            messages: Vec::new(),
+    let mut output = BufWriter::new(tokio::io::stdout());
+    let mut input = BufReader::new(tokio::io::stdin());
+    output.write_all(b"Enter :q to quit\n").await?;
+    loop {
+        output.write_all(b"\x1b[32muser>\x1b[0m ").await?;
+        // Flush stdout to ensure the prompt appears before input
+        output.flush().await?;
+        let mut input_buf = String::new();
+        input.read_line(&mut input_buf).await?;
+        // Remove the newline character from the input
+        let input = input_buf.trim();
+        // Check for a command to exit
+        if input == ":q" {
+            break;
         }
-    }
-
-    // Getter for model
-    pub fn model(&self) -> &str {
-        &self.model
-    }
-    // Mutable setter for model
-    pub fn set_model(&mut self, model: String) {
-        self.model = model;
-    }
-    // Getter for messages
-    pub fn messages(&self) -> &Vec<Message> {
-        &self.messages
-    }
-    // Mutable getter for messages
-    pub fn messages_mut(&mut self) -> &mut Vec<Message> {
-        &mut self.messages
-    }
-    // Getter for client
-    pub fn client(&self) -> &Arc<dyn ChatClient> {
-        &self.client
-    }
-    // Mutable getter for client
-    pub fn client_mut(&mut self) -> &mut Arc<dyn ChatClient> {
-        &mut self.client
-    }
-
-    pub fn provider(&self) -> &str {
-        &self.provider
-    }
-
-    pub fn add_system_prompt(&mut self, prompt: impl ToString) {
-        self.messages.push(Message::system(prompt));
-    }
-
-    pub fn get_tools(&self) -> Vec<Arc<dyn ToolTrait>> {
-        self.tool_set.tools()
-    }
-
-    pub async fn analyze_tool_call(&mut self, response: &Message) {
-        let mut tool_calls_func = Vec::new();
-        if let Some(tool_calls) = response.tool_calls.as_ref() {
-            for tool_call in tool_calls {
-                if tool_call._type == "function" {
-                    tool_calls_func.push(tool_call.function.clone());
-                }
-            }
-        } else {
-            // check if message contains tool call
-            if response.content.contains("Tool:") {
-                let lines: Vec<&str> = response.content.split('\n').collect();
-                // simple parse tool call
-                let mut tool_name = None;
-                let mut args_text = Vec::new();
-                let mut parsing_args = false;
-
-                for line in lines {
-                    if line.starts_with("Tool:") {
-                        tool_name = line.strip_prefix("Tool:").map(|s| s.trim().to_string());
-                        parsing_args = false;
-                    } else if line.starts_with("Inputs:") {
-                        parsing_args = true;
-                    } else if parsing_args {
-                        args_text.push(line.trim());
-                    }
-                }
-                if let Some(name) = tool_name {
-                    tool_calls_func.push(ToolFunction {
-                        name,
-                        arguments: args_text.join("\n"),
-                    });
-                }
-            }
-        }
-        // call tool
-        for tool_call in tool_calls_func {
-            println!("tool call: {:?}", tool_call);
-            let tool = self.tool_set.get_tool(&tool_call.name);
-            if let Some(tool) = tool {
-                // call tool
-                let args = serde_json::from_str::<serde_json::Value>(&tool_call.arguments)
-                    .unwrap_or_default();
-                match tool.call(args).await {
-                    Ok(result) => {
-                        if result.is_error.is_some_and(|b| b) {
-                            self.messages
-                                .push(Message::user("tool call failed, mcp call error"));
-                        } else {
-                            result.content.iter().for_each(|content| {
-                                if let Some(content_text) = content.as_text() {
-                                    let json_result = serde_json::from_str::<serde_json::Value>(
-                                        &content_text.text,
-                                    )
-                                    .unwrap_or_default();
-                                    let pretty_result =
-                                        serde_json::to_string_pretty(&json_result).unwrap();
-                                    println!("call tool result: {}", pretty_result);
-                                    self.messages.push(Message::user(format!(
-                                        "call tool result: {}",
-                                        pretty_result
-                                    )));
+        match chatbot.stream_chat(input, chat_log.clone()).await {
+            Ok(mut response) => {
+                tracing::info!(%input);
+                chat_log.push(Message::user(input));
+                stream_output_agent_start(&mut output).await?;
+                let mut message_buf = String::new();
+                while let Some(message) = response.next().await {
+                    match message {
+                        Ok(AssistantContent::Text(text)) => {
+                            message_buf.push_str(&text.text);
+                            output_agent(text.text, &mut output).await?;
+                        }
+                        Ok(AssistantContent::ToolCall(tool_call)) => {
+                            let name = tool_call.function.name;
+                            let arguments = tool_call.function.arguments;
+                            chat_log.push(Message::assistant(format!(
+                                "Calling tool: {name} with args: {arguments}"
+                            )));
+                            let result = chatbot.tools.call(&name, arguments.to_string()).await;
+                            match result {
+                                Ok(tool_call_result) => {
+                                    stream_output_agent_finished(&mut output).await?;
+                                    stream_output_toolcall(&tool_call_result, &mut output).await?;
+                                    stream_output_agent_start(&mut output).await?;
+                                    chat_log.push(Message::user(tool_call_result));
                                 }
-                            });
+                                Err(e) => {
+                                    output_error(e, &mut output).await?;
+                                }
+                            }
+                        }
+                        Err(error) => {
+                            output_error(error, &mut output).await?;
                         }
                     }
-                    Err(e) => {
-                        println!("tool call failed: {}", e);
-                        self.messages
-                            .push(Message::user(format!("tool call failed: {}", e)));
-                    }
                 }
-            } else {
-                println!("tool not found: {}", tool_call.name);
+                chat_log.push(Message::assistant(message_buf));
+                stream_output_agent_finished(&mut output).await?;
+            }
+            Err(error) => {
+                output_error(error, &mut output).await?;
             }
         }
     }
-    pub async fn chat(&mut self, support_tool: bool) -> Result<()> {
-        println!("welcome to use simple chat client, use 'exit' to quit");
 
-        loop {
-            print!("> ");
-            io::stdout().flush()?;
+    Ok(())
+}
 
-            let mut input = String::new();
-            io::stdin().read_line(&mut input)?;
-            input = input.trim().to_string();
+pub async fn output_error(
+    e: impl std::fmt::Display,
+    output: &mut BufWriter<tokio::io::Stdout>,
+) -> std::io::Result<()> {
+    output
+        .write_all(b"\x1b[1;31m\xE2\x9D\x8C ERROR: \x1b[0m")
+        .await?;
+    output.write_all(e.to_string().as_bytes()).await?;
+    output.write_all(b"\n").await?;
+    output.flush().await?;
+    Ok(())
+}
 
-            if input.is_empty() {
-                continue;
-            }
+pub async fn output_agent(
+    content: impl std::fmt::Display,
+    output: &mut BufWriter<tokio::io::Stdout>,
+) -> std::io::Result<()> {
+    output.write_all(content.to_string().as_bytes()).await?;
+    output.flush().await?;
+    Ok(())
+}
 
-            if input == "exit" {
-                break;
-            }
+pub async fn stream_output_toolcall(
+    content: impl std::fmt::Display,
+    output: &mut BufWriter<tokio::io::Stdout>,
+) -> std::io::Result<()> {
+    output
+        .write_all(b"\x1b[1;33m\xF0\x9F\x9B\xA0 Tool Call: \x1b[0m")
+        .await?;
+    output.write_all(content.to_string().as_bytes()).await?;
+    output.write_all(b"\n").await?;
+    output.flush().await?;
+    Ok(())
+}
 
-            self.messages.push(Message::user(&input));
-            let tool_definitions = if support_tool {
-                // prepare tool list
-                let tools = self.tool_set.tools();
-                if !tools.is_empty() {
-                    Some(
-                        tools
-                            .iter()
-                            .map(|tool| crate::model::Tool {
-                                name: tool.name(),
-                                description: tool.description(),
-                                parameters: tool.parameters(),
-                            })
-                            .collect(),
-                    )
-                } else {
-                    None
-                }
-            } else {
-                None
-            };
+pub async fn stream_output_agent_start(
+    output: &mut BufWriter<tokio::io::Stdout>,
+) -> std::io::Result<()> {
+    output
+        .write_all(b"\x1b[1;34m\xF0\x9F\xA4\x96 Agent: \x1b[0m")
+        .await?;
+    output.flush().await?;
+    Ok(())
+}
 
-            // create request
-            let request = CompletionRequest {
-                model: self.model.clone(),
-                messages: self.messages.clone(),
-                temperature: Some(0.7),
-                tools: tool_definitions,
-            };
-
-            // send request
-            let response = self.client.complete(request).await?;
-            // get choice
-            let choice = response.choices.first().unwrap();
-            println!("AI > {}", choice.message.content);
-            // analyze tool call
-            self.analyze_tool_call(&choice.message).await;
-        }
-
-        Ok(())
-    }
+pub async fn stream_output_agent_finished(
+    output: &mut BufWriter<tokio::io::Stdout>,
+) -> std::io::Result<()> {
+    output.write_all(b"\n").await?;
+    output.flush().await?;
+    Ok(())
 }
