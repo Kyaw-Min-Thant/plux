@@ -1,26 +1,16 @@
 import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
-import type { McpServerInfo, Tool } from "../types/mcp";
-import type { ChatMessage } from "../types/chat";
+import type { McpServerInfo, Tool, McpConfig } from "@/types/mcp";
 
 interface McpStore {
   servers: McpServerInfo[];
   connectedServers: Set<string>;
   serverTools: Record<string, Tool[]>;
   expandedServers: Set<string>;
-  messages: ChatMessage[];
-  inputMessage: string;
-  isLoading: boolean;
   loadServers: () => Promise<void>;
   toggleServerConnection: (serverName: string) => Promise<void>;
   loadServerTools: (serverName: string) => Promise<void>;
   toggleServerExpanded: (serverName: string) => void;
-  sendMessage: (
-    provider: string,
-    model: string,
-    apiKey?: string,
-  ) => Promise<void>;
-  setInputMessage: (msg: string) => void;
 }
 
 export const useMcpStore = create<McpStore>((set, get) => ({
@@ -28,12 +18,16 @@ export const useMcpStore = create<McpStore>((set, get) => ({
   connectedServers: new Set(),
   serverTools: {},
   expandedServers: new Set(),
-  messages: [],
-  inputMessage: "",
-  isLoading: false,
   loadServers: async () => {
     try {
-      const serverList = await invoke<McpServerInfo[]>("get_mcp_servers");
+      const config = await invoke<McpConfig>("load_mcp_config");
+      const serverList: McpServerInfo[] = Object.entries(config.mcpServers).map(
+        ([name, config]) => ({
+          name,
+          config,
+          connected: false,
+        })
+      );
       set({ servers: serverList });
     } catch (error) {
       console.error("Failed to load MCP servers:", error);
@@ -67,7 +61,7 @@ export const useMcpStore = create<McpStore>((set, get) => ({
   },
   loadServerTools: async (serverName: string) => {
     try {
-      const tools = await invoke<Tool[]>("list_tools", { serverName });
+      const tools = await invoke<Tool[]>("get_available_tools", { serverName });
       set((state) => ({
         serverTools: { ...state.serverTools, [serverName]: tools },
       }));
@@ -86,52 +80,4 @@ export const useMcpStore = create<McpStore>((set, get) => ({
       return { expandedServers: next };
     });
   },
-  sendMessage: async (provider: string, model: string, apiKey?: string) => {
-    console.log("apiKey", apiKey);
-    const { inputMessage, messages } = get();
-    if (!inputMessage.trim()) return;
-    const userMessage: ChatMessage = {
-      role: "user",
-      content: inputMessage,
-      timestamp: Date.now(),
-    };
-    set({
-      messages: [...messages, userMessage],
-      inputMessage: "",
-      isLoading: true,
-    });
-
-    const payload = {
-      message: userMessage.content,
-      provider,
-      model,
-      api_key: apiKey,
-    };
-    console.log("payload", payload);
-
-    try {
-      const response = await invoke<string>("send_chat_message", {
-        request: payload,
-      });
-      console.log("response", response);
-      const assistantMessage: ChatMessage = {
-        role: "assistant",
-        content: response,
-        timestamp: Date.now(),
-      };
-      set((state) => ({ messages: [...state.messages, assistantMessage] }));
-    } catch (error) {
-      // Add error message to chat if send fails
-      const errorMessage: ChatMessage = {
-        role: "assistant",
-        content: `Error: Failed to send message.`,
-        timestamp: Date.now(),
-      };
-      set((state) => ({ messages: [...state.messages, errorMessage] }));
-      console.error("Failed to send message:", error);
-    } finally {
-      set({ isLoading: false, inputMessage: "" });
-    }
-  },
-  setInputMessage: (msg: string) => set({ inputMessage: msg }),
 }));

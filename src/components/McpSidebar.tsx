@@ -2,9 +2,9 @@ import { Collapsible, CollapsibleContent } from "./ui/collapsible";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { Switch } from "./ui/switch";
 import { useMcpStore } from "../hooks/useMcpStore";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { McpConfig, McpServerTransportConfig } from "@/types/mcp";
+import { Button } from "./ui/button";
 
 export default function McpSidebar() {
   const {
@@ -13,36 +13,30 @@ export default function McpSidebar() {
     expandedServers,
     toggleServerConnection,
     toggleServerExpanded,
+    servers, loadServers
   } = useMcpStore();
 
-  const [servers, setServers] = useState<
-    { name: string; config: McpServerTransportConfig }[]
-  >([]);
+  async function listTools() {
+    const tools = await invoke("get_available_tools")
+    console.log(tools)
+  }
 
-  async function listServers() {
-    try {
-      const config = await invoke<McpConfig>("load_mcp_config");
-      const serverList = Object.entries(config.mcpServers).map(([name, config]) => ({
-        name,
-        config,
-      }));
-      setServers(serverList);
-      const serverNames = serverList.map((s) => s.name);
-      console.log("list Servers:", serverNames);
-    } catch (err) {
-      console.error("load MCP server fail:", err);
-    }
+  async function initMCPClients() {
+    const loadedServers = await invoke("initialize_mcp_clients")
+    console.log(loadedServers)
   }
 
   useEffect(() => {
-    listServers();
-  }, []);
+    loadServers();
+  }, [loadServers]);
 
 
   return (
     <div className="w-80 border-r bg-white overflow-y-auto">
       <div className="p-4">
         <h2 className="font-medium mb-3">MCP Servers</h2>
+        <Button onClick={listTools}>list tools</Button>
+        <Button onClick={initMCPClients}>init MCP Clients</Button>
         <div className="space-y-2">
           {servers.map((server) => (
             <div key={server.name} className="border rounded-lg p-3">

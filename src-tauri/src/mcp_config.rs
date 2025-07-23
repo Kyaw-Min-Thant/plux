@@ -101,4 +101,34 @@ impl McpConfig {
 
         Ok(clients)
     }
+
+    /// Enable a single MCP server by name
+    pub async fn enable_mcp_server(
+        &self,
+        name: &str,
+    ) -> Result<Option<(String, RunningService<RoleClient, ()>)>> {
+        if let Some(config) = self.servers.get(name) {
+            match config.start().await {
+                Ok(client) => Ok(Some((name.to_string(), client))),
+                Err(e) => {
+                    eprintln!("Failed to start MCP server {}: {}", name, e);
+                    Ok(None)
+                }
+            }
+        } else {
+            Err(anyhow::anyhow!("Server config not found for {}", name))
+        }
+    }
+
+    /// Disable a single MCP client by name from the running clients HashMap
+    pub fn disable_mcp_server(
+        clients: &mut HashMap<String, RunningService<RoleClient, ()>>,
+        name: &str,
+    ) -> Result<()> {
+        if clients.remove(name).is_some() {
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!("MCP client not found for {}", name))
+        }
+    }
 }

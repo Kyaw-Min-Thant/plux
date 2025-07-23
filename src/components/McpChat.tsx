@@ -1,11 +1,10 @@
-import type { ChatMessage } from "../types/chat";
 import { Send } from "lucide-react";
-import { useMcpStore } from "@/hooks/useMcpStore";
 import { useProvider } from "@/hooks/useProvider";
+import { useChatStore } from "@/hooks/useChatStore";
 
 export default function McpChat() {
   const { messages, inputMessage, setInputMessage, sendMessage, isLoading } =
-    useMcpStore();
+    useChatStore();
   const { selectedProvider, providers, apiKey } = useProvider();
   const selectedProviderConfig = providers.find(
     (p) => p.value === selectedProvider,
