@@ -17,7 +17,7 @@ export default function McpSidebar() {
   } = useMcpStore();
 
   async function listTools() {
-    const tools = await invoke("get_available_tools")
+    const tools = await invoke("list_mcp_tools")
     console.log(tools)
   }
 

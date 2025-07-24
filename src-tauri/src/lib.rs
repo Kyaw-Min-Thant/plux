@@ -8,7 +8,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             cmd::chat_with_agent,
             cmd::load_mcp_config,
-            cmd::update_api_keys
+            cmd::update_api_keys,
+            cmd::list_mcp_tools
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

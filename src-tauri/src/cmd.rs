@@ -5,13 +5,54 @@ use rig::{
     completion::AssistantContent,
     embeddings::EmbeddingsBuilder,
     providers::{cohere, deepseek},
-    vector_store::in_memory_store::InMemoryVectorStore,
     tool::ToolSet,
+    vector_store::in_memory_store::InMemoryVectorStore,
 };
-use rig::client::ProviderClient;
-use rig::streaming::StreamingChat;
+use rig::{client::ProviderClient, streaming::StreamingChat};
+use rmcp::model::Tool as McpTool;
 
 use crate::config;
+
+// #[derive(serde::Serialize)]
+// pub struct ServerTool {
+//     server_name: String,
+//     #[serde(flatten)]
+//     tool: McpTool,
+// }
+
+#[tauri::command]
+pub async fn list_mcp_tools() -> Result<std::collections::HashMap<String, Vec<McpTool>>, String> {
+    let config = config::McpConfig::load()
+        .await
+        .map_err(|e| e.to_string())?;
+    let mcp_manager = config.create_manager().await.map_err(|e| e.to_string())?;
+
+    let mut tools_map = std::collections::HashMap::new();
+    let mut task = tokio::task::JoinSet::new();
+
+    for (server_name, client) in mcp_manager.clients.iter() {
+        let server = client.peer().clone();
+        let server_name = server_name.clone();
+        task.spawn(async move {
+            let tools = match server.list_all_tools().await {
+                Ok(tools) => tools,
+                Err(e) => {
+                    eprintln!("Failed to list tools for server '{}': {}", server_name, e);
+                    Vec::new()
+                }
+            };
+            (server_name, tools)
+        });
+    }
+
+    while let Some(result) = task.join_next().await {
+        if let Ok((server_name, tools)) = result {
+            tools_map.insert(server_name, tools);
+        }
+    }
+
+    Ok(tools_map)
+}
 
 #[tauri::command]
 pub async fn load_mcp_config() -> Result<crate::config::McpConfig, String> {
@@ -26,7 +67,9 @@ pub fn update_api_keys(deepseek_api_key: String, cohere_api_key: String) {
     std::env::set_var("COHERE_API_KEY", cohere_api_key);
 }
 
-async fn create_agent_with_tools(tool_set: ToolSet) -> anyhow::Result<Agent<deepseek::DeepSeekCompletionModel>> {
+async fn create_agent_with_tools(
+    tool_set: ToolSet,
+) -> anyhow::Result<Agent<deepseek::DeepSeekCompletionModel>> {
     let openai_client = deepseek::Client::from_env();
     let cohere_client = cohere::Client::from_env();
     let embedding_model =
@@ -38,7 +81,7 @@ async fn create_agent_with_tools(tool_set: ToolSet) -> anyhow::Result<Agent<deep
         .await?;
     let store = InMemoryVectorStore::from_documents(embeddings);
     let index = store.index(embedding_model);
-    
+
     let agent = openai_client
         .agent(deepseek::DEEPSEEK_CHAT)
         .dynamic_tools(4, index, tool_set)
@@ -47,12 +90,15 @@ async fn create_agent_with_tools(tool_set: ToolSet) -> anyhow::Result<Agent<deep
 }
 
 #[tauri::command]
-pub async fn chat_with_agent(
-    input: String,
-) -> Result<String, String> {
-    let config = config::McpConfig::load().await.map_err(|e| e.to_string())?;
+pub async fn chat_with_agent(input: String) -> Result<String, String> {
+    let config = config::McpConfig::load()
+        .await
+        .map_err(|e| e.to_string())?;
     let mcp_manager = config.create_manager().await.map_err(|e| e.to_string())?;
-    let tool_set = mcp_manager.get_tool_set().await.map_err(|e| e.to_string())?;
+    let tool_set = mcp_manager
+        .get_tool_set()
+        .await
+        .map_err(|e| e.to_string())?;
 
     let agent = match create_agent_with_tools(tool_set).await {
         Ok(agent) => agent,
