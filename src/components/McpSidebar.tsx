@@ -1,7 +1,7 @@
 import { Collapsible, CollapsibleContent } from "./ui/collapsible";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { Switch } from "./ui/switch";
-import { useMcpStore } from "../hooks/useMcpStore";
+import { useMcpStore } from "@/hooks/useMcpStore";
 import { useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Button } from "./ui/button";
@@ -22,7 +22,7 @@ export default function McpSidebar() {
   }
 
   async function initMCPClients() {
-    const loadedServers = await invoke("initialize_mcp_clients")
+    const loadedServers = await invoke("load_mcp_config")
     console.log(loadedServers)
   }
 

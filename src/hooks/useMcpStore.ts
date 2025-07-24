@@ -21,6 +21,7 @@ export const useMcpStore = create<McpStore>((set, get) => ({
   loadServers: async () => {
     try {
       const config = await invoke<McpConfig>("load_mcp_config");
+      console.log(config)
       const serverList: McpServerInfo[] = Object.entries(config.mcpServers).map(
         ([name, config]) => ({
           name,

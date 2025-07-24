@@ -37,3 +37,4 @@ rmcp = { version = "0.2.1", features = [
     "transport-streamable-http-client",
     "reqwest"
 ], no-default-features = true }
+once_cell = "1.21.3"
