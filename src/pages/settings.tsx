@@ -13,15 +13,15 @@ function SettingsPage() {
   } = useProvider();
 
   async function getApiKeys() {
-    const keys = await invoke<[string, string]>("get_api_keys")
-    console.log(keys)
+    const keys = await invoke<[string, string]>("get_api_keys");
+    console.log(keys);
   }
 
   async function setApiKeys() {
     await invoke("update_api_keys", {
       deepseekApiKey: "abc",
       cohereApiKey: "cbd",
-    })
+    });
   }
 
   return (
@@ -30,9 +30,8 @@ function SettingsPage() {
         Settings for {selectedProvider}
       </h1>
       <div className="flex gap-2">
-
-      <Button onClick={getApiKeys}>get keys</Button>
-      <Button onClick={setApiKeys}>set keys</Button>
+        <Button onClick={getApiKeys}>get keys</Button>
+        <Button onClick={setApiKeys}>set keys</Button>
       </div>
       <div className="flex gap-8">
         <div className="flex flex-col space-y-2">
@@ -74,7 +73,7 @@ function SettingsPage() {
               </div>
             ))}
           </div>
-          </div>
+        </div>
       </div>
     </div>
   );

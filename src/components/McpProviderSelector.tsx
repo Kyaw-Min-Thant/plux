@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useProvider } from "../hooks/useProvider";
-import { Provider } from "../types/mcp";
+import { useProvider } from "@/hooks/useProvider";
+import { Provider } from "@/types";
 import {
   Command,
   CommandInput,
@@ -9,7 +9,11 @@ import {
   CommandItem,
   CommandSeparator,
 } from "@/components/ui/command";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 
 export default function McpProviderSelector() {
@@ -23,7 +27,9 @@ export default function McpProviderSelector() {
   const [open, setOpen] = useState(false);
 
   // Find the selected provider object
-  const selectedProviderObj = providers.find((p) => p.value === selectedProvider);
+  const selectedProviderObj = providers.find(
+    (p) => p.value === selectedProvider,
+  );
 
   // Handle provider selection
   const handleProviderSelect = (providerValue: string) => {
@@ -43,11 +49,15 @@ export default function McpProviderSelector() {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" className="w-full justify-between"
-        onClick={() => setOpen(!open)} 
+        <Button
+          variant="outline"
+          className="w-full justify-between"
+          onClick={() => setOpen(!open)}
         >
           <span>
-            {selectedProviderObj ? selectedProviderObj.label : "Choose provider"}
+            {selectedProviderObj
+              ? selectedProviderObj.label
+              : "Choose provider"}
           </span>
         </Button>
       </PopoverTrigger>
@@ -63,7 +73,9 @@ export default function McpProviderSelector() {
                   onSelect={() => handleProviderSelect(provider.value)}
                   // Highlight selected provider
                   className={
-                    provider.value === selectedProvider ? "bg-accent text-accent-foreground" : ""
+                    provider.value === selectedProvider
+                      ? "bg-accent text-accent-foreground"
+                      : ""
                   }
                 >
                   {provider.label}
@@ -80,7 +92,9 @@ export default function McpProviderSelector() {
                     onSelect={() => handleModelSelect(model)}
                     // Highlight selected model
                     className={
-                      model === selectedModel ? "bg-accent text-accent-foreground" : ""
+                      model === selectedModel
+                        ? "bg-accent text-accent-foreground"
+                        : ""
                     }
                   >
                     {model}

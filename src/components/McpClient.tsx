@@ -1,5 +1,5 @@
 import McpSidebar from "./McpSidebar";
-import McpChat from "./McpChat";
+import McpChat from "./Chat";
 import McpProviderSelector from "./McpProviderSelector";
 export default function McpClient() {
   return (

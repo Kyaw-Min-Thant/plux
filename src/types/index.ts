@@ -1,3 +1,6 @@
+export * from "./chat";
+export * from "./mcp";
+
 // Message type for chat messages
 export interface Message {
   role: "user" | "assistant" | "system" | "error" | "tool";

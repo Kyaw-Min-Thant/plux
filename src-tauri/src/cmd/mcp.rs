@@ -15,9 +15,7 @@ use crate::config;
 
 #[tauri::command]
 pub async fn list_mcp_tools() -> Result<std::collections::HashMap<String, Vec<McpTool>>, String> {
-    let config = config::McpConfig::load()
-        .await
-        .map_err(|e| e.to_string())?;
+    let config = config::McpConfig::load().await.map_err(|e| e.to_string())?;
     let mcp_manager = config.create_manager().await.map_err(|e| e.to_string())?;
 
     let mut tools_map = std::collections::HashMap::new();
@@ -49,9 +47,7 @@ pub async fn list_mcp_tools() -> Result<std::collections::HashMap<String, Vec<Mc
 
 #[tauri::command]
 pub async fn load_mcp_config() -> Result<config::McpConfig, String> {
-    config::McpConfig::load()
-        .await
-        .map_err(|e| e.to_string())
+    config::McpConfig::load().await.map_err(|e| e.to_string())
 }
 
 async fn create_agent_with_tools(
@@ -78,9 +74,7 @@ async fn create_agent_with_tools(
 
 #[tauri::command]
 pub async fn chat_with_agent(input: String) -> Result<String, String> {
-    let config = config::McpConfig::load()
-        .await
-        .map_err(|e| e.to_string())?;
+    let config = config::McpConfig::load().await.map_err(|e| e.to_string())?;
     let mcp_manager = config.create_manager().await.map_err(|e| e.to_string())?;
     let tool_set = mcp_manager
         .get_tool_set()

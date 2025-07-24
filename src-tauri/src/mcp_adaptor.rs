@@ -1,11 +1,11 @@
-use std::collections::HashMap;
-use std::future::Future;
 use rig::tool::{ToolDyn as RigTool, ToolEmbeddingDyn, ToolSet};
 use rmcp::{
-    RoleClient,
     model::{CallToolRequestParam, CallToolResult, Tool as McpTool},
     service::{RunningService, ServerSink},
+    RoleClient,
 };
+use std::collections::HashMap;
+use std::future::Future;
 
 pub struct McpToolAdaptor {
     tool: McpTool,
@@ -62,13 +62,12 @@ impl ToolEmbeddingDyn for McpToolAdaptor {
     }
 
     fn embedding_docs(&self) -> Vec<String> {
-        vec![
-            self.tool
-                .description
-                .as_deref()
-                .unwrap_or_default()
-                .to_string(),
-        ]
+        vec![self
+            .tool
+            .description
+            .as_deref()
+            .unwrap_or_default()
+            .to_string()]
     }
 }
 

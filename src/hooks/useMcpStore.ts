@@ -8,6 +8,7 @@ interface McpStore {
   serverTools: Record<string, Tool[]>;
   expandedServers: Set<string>;
   loadServers: () => Promise<void>;
+  toggleServerConnection: (serverName: string) => Promise<void>;
   loadServerTools: (serverName: string) => Promise<void>;
   toggleServerExpanded: (serverName: string) => void;
 }
@@ -20,13 +21,13 @@ export const useMcpStore = create<McpStore>((set, get) => ({
   loadServers: async () => {
     try {
       const config = await invoke<McpConfig>("load_mcp_config");
-      console.log(config)
+      console.log(config);
       const serverList: McpServerInfo[] = Object.entries(config.mcpServers).map(
         ([name, config]) => ({
           name,
           config,
           connected: false,
-        })
+        }),
       );
       set({ servers: serverList });
     } catch (error) {

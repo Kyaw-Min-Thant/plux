@@ -8,14 +8,42 @@ export interface ProviderConfig {
 }
 
 const PROVIDERS: ProviderConfig[] = [
-  { value: "claude", label: "Claude", models: ["claude-4-sonnet", "claude-4-opus","claude-3.7-sonnet",  "claude-3.7-opus", "claude-3.7-haiku"] },
-  { value: "openai", label: "OpenAI", models: ["gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo"] },
+  {
+    value: "claude",
+    label: "Claude",
+    models: [
+      "claude-4-sonnet",
+      "claude-4-opus",
+      "claude-3.7-sonnet",
+      "claude-3.7-opus",
+      "claude-3.7-haiku",
+    ],
+  },
+  {
+    value: "openai",
+    label: "OpenAI",
+    models: ["gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo"],
+  },
   {
     value: "openrouter",
     label: "OpenRouter",
-    models: ["anthropic/claude-4-sonnet", "openai/gpt-4o", "meta-llama/llama-3-70b"]
+    models: [
+      "anthropic/claude-4-sonnet",
+      "openai/gpt-4o",
+      "meta-llama/llama-3-70b",
+    ],
   },
-  { value: "gemini", label: "Gemini", models: ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.0-pro", "gemini-1.5-pro"] },
+  {
+    value: "gemini",
+    label: "Gemini",
+    models: [
+      "gemini-2.5-pro",
+      "gemini-2.5-flash",
+      "gemini-2.0-flash",
+      "gemini-2.0-pro",
+      "gemini-1.5-pro",
+    ],
+  },
 ];
 
 export function useProvider() {
@@ -26,10 +54,13 @@ export function useProvider() {
     },
   );
   const [providers] = useState<ProviderConfig[]>(PROVIDERS);
-  const selectedProviderConfig = providers.find(p => p.value === selectedProvider);
+  const selectedProviderConfig = providers.find(
+    (p) => p.value === selectedProvider,
+  );
   const models = selectedProviderConfig ? selectedProviderConfig.models : [];
   const [apiKey, setApiKeyState] = useState<string>(() => {
-    const provider = (localStorage.getItem("selectedProvider") as Provider) || "openai";
+    const provider =
+      (localStorage.getItem("selectedProvider") as Provider) || "openai";
     return localStorage.getItem(`${provider}_API_KEY`) || "";
   });
 
@@ -40,10 +71,13 @@ export function useProvider() {
   }, []);
 
   // Set API Key and save to localStorage (provider-specific)
-  const setApiKey = useCallback(async (key: string) => {
-    setApiKeyState(key);
-    localStorage.setItem(`${selectedProvider}_API_KEY`, key);
-  }, [selectedProvider]);
+  const setApiKey = useCallback(
+    async (key: string) => {
+      setApiKeyState(key);
+      localStorage.setItem(`${selectedProvider}_API_KEY`, key);
+    },
+    [selectedProvider],
+  );
 
   // Load provider from localStorage
   const loadProviderFromConfig = useCallback(async () => {
@@ -56,7 +90,7 @@ export function useProvider() {
   const [selectedModel, setSelectedModelState] = useState<string>(() => {
     return localStorage.getItem("selectedModel") || "";
   });
-  
+
   const setSelectedModel = useCallback((model: string) => {
     setSelectedModelState(model);
     localStorage.setItem("selectedModel", model);

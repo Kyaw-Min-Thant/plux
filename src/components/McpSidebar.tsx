@@ -13,30 +13,24 @@ export default function McpSidebar() {
     expandedServers,
     toggleServerConnection,
     toggleServerExpanded,
-    servers, loadServers
+    servers,
+    loadServers,
   } = useMcpStore();
 
   async function listTools() {
-    const tools = await invoke("list_mcp_tools")
-    console.log(tools)
-  }
-
-  async function initMCPClients() {
-    const loadedServers = await invoke("load_mcp_config")
-    console.log(loadedServers)
+    const tools = await invoke("list_mcp_tools");
+    console.log(tools);
   }
 
   useEffect(() => {
     loadServers();
   }, [loadServers]);
 
-
   return (
     <div className="w-80 border-r bg-white overflow-y-auto">
       <div className="p-4">
         <h2 className="font-medium mb-3">MCP Servers</h2>
         <Button onClick={listTools}>list tools</Button>
-        <Button onClick={initMCPClients}>init MCP Clients</Button>
         <div className="space-y-2">
           {servers.map((server) => (
             <div key={server.name} className="border rounded-lg p-3">
@@ -66,8 +60,7 @@ export default function McpSidebar() {
               >
                 <CollapsibleContent className="mt-2">
                   <div className="text-xs text-gray-600 mb-2">
-                    {server.config.command}{" "}
-                    {server.config.args.join(" ")}
+                    {server.config.command} {server.config.args.join(" ")}
                   </div>
                   {connectedServers.has(server.name) &&
                     serverTools[server.name] && (
