@@ -1,25 +1,22 @@
-pub mod chat;
-mod commands;
-mod app_state;
+mod cmd;
+mod config;
+mod mcp_adaptor;
 
-use commands::{
-    create_chat_session, get_available_tools, initialize_mcp_clients,
-    load_mcp_config, save_mcp_config, send_chat_message,
-};
+use crate::cmd::init_agent;
+use rig::{agent::Agent, providers::deepseek};
+use tokio::sync::OnceCell;
 
-use crate::app_state::AppState;
+static AGENT: OnceCell<Agent<deepseek::DeepSeekCompletionModel>> = OnceCell::const_new();
+
+pub async fn get_agent() -> anyhow::Result<&'static Agent<deepseek::DeepSeekCompletionModel>> {
+    AGENT.get_or_try_init(init_agent).await
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
-            load_mcp_config,
-            save_mcp_config,
-            initialize_mcp_clients,
-            create_chat_session,
-            get_available_tools,
-            send_chat_message,
+            cmd::chat_with_agent_command
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

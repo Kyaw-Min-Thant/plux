@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-
+use std::future::Future;
 use rig::tool::{ToolDyn as RigTool, ToolEmbeddingDyn, ToolSet};
 use rmcp::{
     RoleClient,
@@ -49,8 +49,6 @@ impl RigTool for McpToolAdaptor {
                         .map_err(rig::tool::ToolError::JsonError)?,
                 })
                 .await
-                .inspect(|result| tracing::info!(?result))
-                .inspect_err(|error| tracing::error!(%error))
                 .map_err(|e| rig::tool::ToolError::ToolCallError(Box::new(e)))?;
 
             Ok(convert_mcp_call_tool_result_to_string(call_mcp_tool_result))
@@ -89,8 +87,8 @@ impl McpManager {
         let results = task.join_all().await;
         for result in results {
             match result {
-                Err(e) => {
-                    tracing::error!(error = %e, "Failed to get tool set");
+                Err(_e) => {
+                    // Error handling can be added here if needed
                 }
                 Ok(tools) => {
                     tool_set.add_tools(tools);
@@ -109,7 +107,6 @@ pub async fn get_tool_set(server: ServerSink) -> anyhow::Result<ToolSet> {
     let tools = server.list_all_tools().await?;
     let mut tool_builder = ToolSet::builder();
     for tool in tools {
-        tracing::info!("get tool: {}", tool.name);
         let adaptor = McpToolAdaptor {
             tool: tool.clone(),
             server: server.clone(),

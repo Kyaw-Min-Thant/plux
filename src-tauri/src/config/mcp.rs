@@ -35,10 +35,6 @@ pub enum McpServerTransportConfig {
     },
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct McpConfig {
-    server: Vec<McpServerConfig>,
-}
 
 impl McpConfig {
     pub async fn create_manager(&self) -> anyhow::Result<McpManager> {

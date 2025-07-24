@@ -1,0 +1,26 @@
+{
+  "mcpServers": {
+    "Sequential Thinking": {
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ],
+      "command": "npx"
+    },
+    "desktop-commander": {
+      "args": [
+        "-y",
+        "@wonderwhy-er/desktop-commander"
+      ],
+      "command": "npx"
+    },
+    "filesystem": {
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/tmp/"
+      ],
+      "command": "npx"
+    }
+  }
+}
