@@ -8,7 +8,6 @@ interface McpStore {
   serverTools: Record<string, Tool[]>;
   expandedServers: Set<string>;
   loadServers: () => Promise<void>;
-  toggleServerConnection: (serverName: string) => Promise<void>;
   loadServerTools: (serverName: string) => Promise<void>;
   toggleServerExpanded: (serverName: string) => void;
 }

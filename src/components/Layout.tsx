@@ -10,7 +10,7 @@ export function Layout() {
         {/* Main Content */}
         <div className="flex flex-1">
           <AppSidebar />
-          <main className="flex-1 min-w-0 overflow-auto">
+          <main className="flex-1 min-w-0 overflow-auto pl-12">
             <Outlet />
           </main>
         </div>

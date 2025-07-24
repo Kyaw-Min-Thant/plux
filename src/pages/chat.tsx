@@ -1,7 +1,7 @@
 import McpClient from "@/components/McpClient";
 
-function HomePage() {
+function ChatPage() {
   return <McpClient />;
 }
 
-export default HomePage;
+export default ChatPage;

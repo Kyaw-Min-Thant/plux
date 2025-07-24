@@ -13,13 +13,6 @@ use rmcp::model::Tool as McpTool;
 
 use crate::config;
 
-// #[derive(serde::Serialize)]
-// pub struct ServerTool {
-//     server_name: String,
-//     #[serde(flatten)]
-//     tool: McpTool,
-// }
-
 #[tauri::command]
 pub async fn list_mcp_tools() -> Result<std::collections::HashMap<String, Vec<McpTool>>, String> {
     let config = config::McpConfig::load()
@@ -55,16 +48,10 @@ pub async fn list_mcp_tools() -> Result<std::collections::HashMap<String, Vec<Mc
 }
 
 #[tauri::command]
-pub async fn load_mcp_config() -> Result<crate::config::McpConfig, String> {
-    crate::config::McpConfig::load()
+pub async fn load_mcp_config() -> Result<config::McpConfig, String> {
+    config::McpConfig::load()
         .await
         .map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-pub fn update_api_keys(deepseek_api_key: String, cohere_api_key: String) {
-    std::env::set_var("DEEPSEEK_API_KEY", deepseek_api_key);
-    std::env::set_var("COHERE_API_KEY", cohere_api_key);
 }
 
 async fn create_agent_with_tools(

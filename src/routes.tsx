@@ -2,7 +2,7 @@ import { createHashRouter } from "react-router-dom";
 
 import { Layout } from "@/components/Layout";
 import SettingsPage from "@/pages/settings";
-import HomePage from "@/pages/home";
+import ChatPage from "@/pages/chat";
 
 export const router = createHashRouter([
   {
@@ -11,7 +11,7 @@ export const router = createHashRouter([
     children: [
       {
         index: true,
-        element: <HomePage />,
+        element: <ChatPage />,
       },
       {
         path: "settings",

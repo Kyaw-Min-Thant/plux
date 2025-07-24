@@ -1,15 +1,14 @@
+use crate::mcp_adaptor::McpManager;
+use rmcp::{service::RunningService, transport::ConfigureCommandExt, RoleClient, ServiceExt};
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, process::Stdio};
 
-use rmcp::{RoleClient, ServiceExt, service::RunningService, transport::ConfigureCommandExt};
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct McpConfig {
-    #[serde(rename = "mcpServers")]
+    #[serde(rename = "mcpServers", default)]
     pub servers: HashMap<String, McpServerTransportConfig>,
 }
 
-use crate::mcp_adaptor::McpManager;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct McpServerConfig {
     name: String,
@@ -35,7 +34,6 @@ pub enum McpServerTransportConfig {
     },
 }
 
-
 impl McpConfig {
     pub async fn create_manager(&self) -> anyhow::Result<McpManager> {
         let mut clients = HashMap::new();
@@ -52,6 +50,19 @@ impl McpConfig {
         }
 
         Ok(McpManager { clients })
+    }
+
+    pub async fn load() -> anyhow::Result<Self> {
+        let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Cannot find home directory"))?;
+        let config_path = home.join(".config/finder/mcp.json");
+
+        if !config_path.exists() {
+            return Ok(Self::default());
+        }
+
+        let content = tokio::fs::read_to_string(config_path).await?;
+        let config = serde_json::from_str(&content)?;
+        Ok(config)
     }
 }
 
@@ -74,8 +85,10 @@ impl McpServerTransportConfig {
             } => {
                 let transport = rmcp::transport::TokioChildProcess::new(
                     tokio::process::Command::new(command).configure(|cmd| {
-                        cmd.args(args).envs(envs).stderr(Stdio::inherit())
-                        .stdout(Stdio::inherit());
+                        cmd.args(args)
+                            .envs(envs)
+                            .stderr(Stdio::piped())
+                            .stdout(Stdio::piped());
                     }),
                 )?;
                 ().serve(transport).await?

@@ -1,4 +1,6 @@
+import { Button } from "@/components/ui/button";
 import { useProvider } from "@/hooks/useProvider";
+import { invoke } from "@tauri-apps/api/core";
 
 function SettingsPage() {
   const {
@@ -10,11 +12,28 @@ function SettingsPage() {
     models,
   } = useProvider();
 
+  async function getApiKeys() {
+    const keys = await invoke<[string, string]>("get_api_keys")
+    console.log(keys)
+  }
+
+  async function setApiKeys() {
+    await invoke("update_api_keys", {
+      deepseekApiKey: "abc",
+      cohereApiKey: "cbd",
+    })
+  }
+
   return (
     <div className="p-6">
       <h1 className="text-lg font-semibold mb-4">
         Settings for {selectedProvider}
       </h1>
+      <div className="flex gap-2">
+
+      <Button onClick={getApiKeys}>get keys</Button>
+      <Button onClick={setApiKeys}>set keys</Button>
+      </div>
       <div className="flex gap-8">
         <div className="flex flex-col space-y-2">
           {providers.map((provider) => (

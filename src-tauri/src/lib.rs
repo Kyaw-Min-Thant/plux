@@ -1,4 +1,5 @@
 mod cmd;
+mod cmd_key;
 mod config;
 mod mcp_adaptor;
 
@@ -8,7 +9,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             cmd::chat_with_agent,
             cmd::load_mcp_config,
-            cmd::update_api_keys,
+            cmd_key::update_api_keys,
             cmd::list_mcp_tools
         ])
         .run(tauri::generate_context!())
