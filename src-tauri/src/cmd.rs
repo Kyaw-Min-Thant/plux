@@ -10,7 +10,6 @@ use rig::{
 };
 use rig::client::ProviderClient;
 use rig::streaming::StreamingChat;
-use std::sync::Arc;
 
 use crate::config;
 
@@ -27,27 +26,7 @@ pub fn update_api_keys(deepseek_api_key: String, cohere_api_key: String) {
     std::env::set_var("COHERE_API_KEY", cohere_api_key);
 }
 
-#[tauri::command]
-pub async fn get_tool_set(id: String) -> Result<String, String> {
-    let config = config::McpConfig::load().await.map_err(|e| e.to_string())?;
-    let mcp_manager = config.create_manager().await.map_err(|e| e.to_string())?;
-    let tool_set = mcp_manager.get_tool_set().await.map_err(|e| e.to_string())?;
-    let schemas = tool_set.schemas().map_err(|e| e.to_string())?;
-    
-    // Store the tool_set in memory with the given ID
-    crate::store_tool_set(id.clone(), tool_set);
-    
-    serde_json::to_string(&schemas).map_err(|e| e.to_string())
-}
-
-pub async fn init_agent() -> anyhow::Result<Agent<deepseek::DeepSeekCompletionModel>> {
-    let config = config::McpConfig::load().await?;
-    let mcp_manager = config.create_manager().await?;
-    let tool_set = mcp_manager.get_tool_set().await?;
-    create_agent_with_tools(Arc::new(tool_set)).await
-}
-
-async fn create_agent_with_tools(tool_set: Arc<ToolSet>) -> anyhow::Result<Agent<deepseek::DeepSeekCompletionModel>> {
+async fn create_agent_with_tools(tool_set: ToolSet) -> anyhow::Result<Agent<deepseek::DeepSeekCompletionModel>> {
     let openai_client = deepseek::Client::from_env();
     let cohere_client = cohere::Client::from_env();
     let embedding_model =
@@ -60,13 +39,9 @@ async fn create_agent_with_tools(tool_set: Arc<ToolSet>) -> anyhow::Result<Agent
     let store = InMemoryVectorStore::from_documents(embeddings);
     let index = store.index(embedding_model);
     
-    // Create a new tool_set from the schemas
-    let mcp_manager = config::McpConfig::load().await?.create_manager().await?;
-    let new_tool_set = mcp_manager.get_tool_set().await?;
-    
     let agent = openai_client
         .agent(deepseek::DEEPSEEK_CHAT)
-        .dynamic_tools(4, index, new_tool_set)
+        .dynamic_tools(4, index, tool_set)
         .build();
     Ok(agent)
 }
@@ -74,10 +49,11 @@ async fn create_agent_with_tools(tool_set: Arc<ToolSet>) -> anyhow::Result<Agent
 #[tauri::command]
 pub async fn chat_with_agent(
     input: String,
-    tool_set_id: String,
 ) -> Result<String, String> {
-    let tool_set = crate::get_tool_set(&tool_set_id)
-        .ok_or_else(|| "Tool set not found".to_string())?;
+    let config = config::McpConfig::load().await.map_err(|e| e.to_string())?;
+    let mcp_manager = config.create_manager().await.map_err(|e| e.to_string())?;
+    let tool_set = mcp_manager.get_tool_set().await.map_err(|e| e.to_string())?;
+
     let agent = match create_agent_with_tools(tool_set).await {
         Ok(agent) => agent,
         Err(e) => return Err(e.to_string()),
