@@ -18,7 +18,7 @@ export function DxtCard({ dxt }: { dxt: DxtManifest }) {
     <Card
       className="w-full h-full flex flex-col justify-between cursor-pointer hover:shadow-lg transition-shadow"
       onClick={() => {
-        console.log(`go to /dxt/${dxt.author.name}/${dxt.name}`)
+        console.log(`go to /dxt/${dxt.author.name}/${dxt.name}`);
         navigate(`/dxt/${dxt.author.name}/${dxt.name}`);
       }}
     >

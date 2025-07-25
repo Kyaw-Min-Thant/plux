@@ -1,3 +1,4 @@
+use glob::glob;
 use std::fs;
 
 #[tauri::command]
@@ -5,35 +6,36 @@ pub async fn load_manifests() -> Result<serde_json::Value, String> {
     async {
         let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Cannot find home directory"))?;
         let base_path = home.join(".config/finder/dxt");
+        let pattern = base_path.join("*/*/manifest.json");
 
         let mut manifests = serde_json::Map::new();
 
         if base_path.exists() {
-            for user_entry in fs::read_dir(&base_path)? {
-                let user_entry = user_entry?;
-                let user_path = user_entry.path();
-                if user_path.is_dir() {
-                    let user = user_path.file_name().unwrap().to_string_lossy().to_string();
+            for entry in glob(pattern.to_str().unwrap())? {
+                let path = entry?;
+                let parent_dir = path.parent().ok_or_else(|| anyhow::anyhow!("Invalid path"))?;
+                let repo = parent_dir
+                    .file_name()
+                    .ok_or_else(|| anyhow::anyhow!("Invalid path"))?
+                    .to_string_lossy()
+                    .to_string();
 
-                    for repo_entry in fs::read_dir(&user_path)? {
-                        let repo_entry = repo_entry?;
-                        let repo_path = repo_entry.path();
-                        if repo_path.is_dir() {
-                            let repo = repo_path.file_name().unwrap().to_string_lossy().to_string();
-                            let manifest_path = repo_path.join("manifest.json");
+                let user_dir = parent_dir
+                    .parent()
+                    .ok_or_else(|| anyhow::anyhow!("Invalid path"))?;
+                let user = user_dir
+                    .file_name()
+                    .ok_or_else(|| anyhow::anyhow!("Invalid path"))?
+                    .to_string_lossy()
+                    .to_string();
 
-                            if manifest_path.exists() {
-                                let content = tokio::fs::read_to_string(&manifest_path).await?;
-                                let json: serde_json::Value = serde_json::from_str(&content)?;
-                                manifests.insert(format!("{}/{}", user, repo), json);
-                            }
-                        }
-                    }
-                }
+                let content = tokio::fs::read_to_string(&path).await?;
+                let json: serde_json::Value = serde_json::from_str(&content)?;
+                manifests.insert(format!("{}/{}", user, repo), json);
             }
         }
 
-        Ok(serde_json::Value::Object(manifests))
+        Ok(serde_json::Value::Array(manifests.into_values().collect()))
     }
     .await
     .map_err(|e: anyhow::Error| e.to_string())

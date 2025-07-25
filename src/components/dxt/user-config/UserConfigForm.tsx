@@ -205,7 +205,7 @@ export function UserConfigForm({
 }) {
   return (
     // Make the form take full width with padding
-    <form className="w-full px-4 grid grid-cols-1 gap-4">
+    <form className="w-full grid grid-cols-1 gap-4">
       {Object.entries(schema).map(([key, option]) => (
         <UserConfigField
           key={key}

@@ -9,64 +9,53 @@ import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { z } from "zod";
-
-function sanitizeManifest(raw: any) {
-  return {
-    ...raw,
-    $schema: raw.$schema ?? "",
-    documentation:
-      raw.documentation &&
-      typeof raw.documentation === "string" &&
-      raw.documentation.trim() !== ""
-        ? raw.documentation
-        : undefined,
-    support:
-      raw.support &&
-      typeof raw.support === "string" &&
-      raw.support.trim() !== ""
-        ? raw.support
-        : undefined,
-    icon: raw.icon ?? "",
-    prompts_generated: raw.prompts_generated ?? false,
-    compatibility: raw.compatibility ?? {},
-    // add more fields as needed
-  };
-}
+import { toast } from "sonner";
 
 export default function DxtDetail() {
   const { user, repo } = useParams();
+
   const [manifest, setManifest] = useState<z.infer<
     typeof DxtManifestSchema
   > | null>(null);
   const [userConfig, setUserConfig] = useState<Record<string, any>>({});
-  const [loading, setLoading] = useState(true);
   const [enabled, setEnabled] = useState(false);
-  const [isInstalled, setIsInstalled] = useState(false); // add isInstalled state
+  const [isInstalled, setIsInstalled] = useState(false);
 
+  async function readDxtSetting() {
+    const setting = await invoke<{
+      isEnabled: boolean;
+      userConfig: Record<string, any>;
+    }>("read_dxt_setting", { user, repo });
+    setIsInstalled(true);
+    setEnabled(setting.isEnabled);
+    setUserConfig(setting.userConfig);
+    console.log(setting);
+  }
 
-  // Second useEffect: check mcpServers after manifest is loaded
   useEffect(() => {
-    if (!manifest) return;
-    invoke<ConfigType>("read_json_file", {
-      clientName: selectedClient,
-      path: selectedPath,
-    }).then((savedData) => {
-      const hasServer = !!savedData.mcpServers?.[manifest.name];
-      setIsInstalled(hasServer);
-      console.log("get mcpServers", savedData.mcpServers[manifest.name]);
+    invoke("load_manifest", {
+      user: user,
+      repo: repo,
+    }).then((data) => {
+      setManifest(DxtManifestSchema.parse(data));
     });
-  }, [manifest]);
+    try {
+      readDxtSetting();
+    } catch (e) {
+      console.error(e);
+      getMergedMcpConfig();
+    }
+  }, [user, repo]);
 
-  if (loading) return <div className="p-4">Loading...</div>;
   if (!manifest) return <div className="p-4">Not found</div>;
 
   const userConfigSchema = manifest.user_config ?? {};
 
   // Helper to merge userConfig into mcp_config
   function getMergedMcpConfig() {
-    const baseConfig = JSON.parse(
-      JSON.stringify(manifest?.server.mcp_config || {}),
-    );
+    const baseConfig = structuredClone(
+      manifest?.server.mcp_config || {},
+    ) as any;
     // If there's an env object, update it with matching userConfig keys
     if (baseConfig.env && typeof baseConfig.env === "object") {
       for (const [k, v] of Object.entries(userConfig)) {
@@ -83,10 +72,37 @@ export default function DxtDetail() {
     return baseConfig;
   }
 
+  async function saveDxtSetting() {
+    const content = { isEnabled: enabled, userConfig };
+    try {
+      await invoke("save_dxt_setting", {
+        user,
+        repo,
+        content,
+      });
+      toast.success("saved");
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  async function changeStatus(checked: boolean) {
+    setEnabled(checked);
+    const content = { isEnabled: checked, userConfig };
+    try {
+      await invoke("save_dxt_setting", {
+        user,
+        repo,
+        content,
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
   return (
     <div className="p-6 max-w-5xl mx-auto">
       <BackButton />
-      <div>{user}/{repo}</div>
       {/* Top section */}
       <div className="flex justify-between items-start mb-6">
         <div>
@@ -96,9 +112,7 @@ export default function DxtDetail() {
           <p className="text-gray-700 mb-1">{manifest.description}</p>
         </div>
         {!isInstalled && (
-          <button
-            className="px-4 py-2 bg-blue-600 text-white rounded shadow"
-          >
+          <button className="px-4 py-2 bg-blue-600 text-white rounded shadow">
             Install
           </button>
         )}
@@ -106,6 +120,7 @@ export default function DxtDetail() {
 
       <div className="flex justify-between">
         <span>
+          <Switch onCheckedChange={changeStatus} checked={enabled} />{" "}
           {enabled ? "Enabled" : "Disabled"}
         </span>
         <Button>Uninstall</Button>
@@ -113,14 +128,22 @@ export default function DxtDetail() {
 
       {/* User config form */}
       {Object.keys(userConfigSchema).length > 0 && (
-        <div className="mb-8 rounded">
-          <h2 className="text-lg font-semibold mb-2">User Configuration</h2>
+        <div className="mb-4 rounded-lg bg-white dark:bg-gray-800 shadow-md p-2 transition-all duration-200 hover:shadow-lg">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            User Configuration
+          </h2>
           <UserConfigForm
             schema={userConfigSchema}
             values={userConfig}
             onChange={(k, v) => setUserConfig((prev) => ({ ...prev, [k]: v }))}
           />
         </div>
+      )}
+
+      {manifest.user_config && (
+        <Button className="mb-2" onClick={saveDxtSetting}>
+          save
+        </Button>
       )}
 
       {/* Middle section: tools & prompts */}

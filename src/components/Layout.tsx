@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { Toaster } from "sonner";
 
 export function Layout() {
   return (
@@ -12,6 +13,7 @@ export function Layout() {
           <main className="flex-1 min-w-0 overflow-auto pl-12">
             <Outlet />
           </main>
+          <Toaster />
         </div>
       </div>
     </SidebarProvider>
