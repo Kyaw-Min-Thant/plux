@@ -1,4 +1,6 @@
-function sanitizeManifest(raw: any) {
+import { create } from "zustand";
+
+export function sanitizeManifest(raw: any) {
   return {
     ...raw,
     $schema: raw.$schema ?? "",

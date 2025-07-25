@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { z } from "zod";
 import { toast } from "sonner";
+import { DxtSetting } from "@/types";
 
 export default function DxtDetail() {
   const { user, repo } = useParams();
@@ -22,10 +23,7 @@ export default function DxtDetail() {
   const [isInstalled, setIsInstalled] = useState(false);
 
   async function readDxtSetting() {
-    const setting = await invoke<{
-      isEnabled: boolean;
-      userConfig: Record<string, any>;
-    }>("read_dxt_setting", { user, repo });
+    const setting = await invoke<DxtSetting>("read_dxt_setting", { user, repo });
     setIsInstalled(true);
     setEnabled(setting.isEnabled);
     setUserConfig(setting.userConfig);

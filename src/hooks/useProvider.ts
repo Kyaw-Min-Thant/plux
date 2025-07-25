@@ -111,6 +111,15 @@ export function useProvider() {
     loadApiKey();
   }, [selectedProvider, loadApiKey]);
 
+  // When provider changes, check if selected model is still valid
+  useEffect(() => {
+    if (models.length > 0) {
+      if (!selectedModel || !models.includes(selectedModel)) {
+        setSelectedModel(models[0]);
+      }
+    }
+  }, [models, selectedModel, setSelectedModel]);
+
   return {
     providers,
     selectedProvider,

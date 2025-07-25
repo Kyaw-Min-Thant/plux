@@ -1,12 +1,15 @@
 import { Collapsible, CollapsibleContent } from "./ui/collapsible";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { Switch } from "./ui/switch";
 import { useMcpStore } from "@/hooks/useMcpStore";
 import { useEffect } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { Button } from "./ui/button";
+import { McpServerTransportConfig, StdioConfig } from "@/types/mcp";
 
-export default function McpSidebar() {
+function isStdioConfig(config: McpServerTransportConfig): config is StdioConfig {
+  return 'command' in config;
+}
+
+export default function McpServers() {
   const {
     connectedServers,
     serverTools,
@@ -17,11 +20,6 @@ export default function McpSidebar() {
     loadServers,
   } = useMcpStore();
 
-  async function listTools() {
-    const tools = await invoke("list_mcp_tools");
-    console.log(tools);
-  }
-
   useEffect(() => {
     loadServers();
   }, [loadServers]);
@@ -29,29 +27,23 @@ export default function McpSidebar() {
   return (
     <div className="w-80 border-r bg-white overflow-y-auto">
       <div className="p-4">
-        <h2 className="font-medium mb-3">MCP Servers</h2>
-        <Button onClick={listTools}>list tools</Button>
         <div className="space-y-2">
           {servers.map((server) => (
-            <div key={server.name} className="border rounded-lg p-3">
+            <div key={server.name} className=" rounded-lg p-1">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
+                <span className="font-medium text-sm">{server.name}</span>
+                <div className="flex items-center">
+                  <Switch
+                    checked={connectedServers.has(server.name)}
+                    onCheckedChange={() => toggleServerConnection(server.name)}
+                  />
                   <button
                     onClick={() => toggleServerExpanded(server.name)}
                     className="p-1 hover:bg-gray-100 rounded"
                   >
-                    {expandedServers.has(server.name) ? (
-                      <ChevronDown className="w-4 h-4" />
-                    ) : (
-                      <ChevronRight className="w-4 h-4" />
-                    )}
+                    <ChevronRight className="w-4 h-4" />
                   </button>
-                  <span className="font-medium text-sm">{server.name}</span>
                 </div>
-                <Switch
-                  checked={connectedServers.has(server.name)}
-                  onCheckedChange={() => toggleServerConnection(server.name)}
-                />
               </div>
 
               <Collapsible
@@ -60,7 +52,11 @@ export default function McpSidebar() {
               >
                 <CollapsibleContent className="mt-2">
                   <div className="text-xs text-gray-600 mb-2">
-                    {server.config.command} {server.config.args.join(" ")}
+                    {isStdioConfig(server.config) && (
+                      <>
+                        {server.config.command} {server.config.args?.join(" ")}
+                      </>
+                    )}
                   </div>
                   {connectedServers.has(server.name) &&
                     serverTools[server.name] && (
