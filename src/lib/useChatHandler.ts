@@ -7,7 +7,6 @@ export const handleSendMessage = async (
   model: string,
   apiKey?: string,
 ) => {
-  console.log("apiKey", apiKey);
   const { inputMessage, messages } = useChatStore.getState();
   if (!inputMessage.trim()) return;
   const userMessage: ChatMessage = {
@@ -29,7 +28,7 @@ export const handleSendMessage = async (
   };
 
   try {
-    const response = await invoke<string>("send_chat_message", {
+    const response = await invoke<string>("chat_with_agent", {
       request: payload,
     });
     const assistantMessage: ChatMessage = {

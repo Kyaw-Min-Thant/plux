@@ -1,4 +1,4 @@
-import McpChat from "@/components/Chat";
+import McpChat from "@/components/chat";
 
 function ChatPage() {
   return <McpChat />;
