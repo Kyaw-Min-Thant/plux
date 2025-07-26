@@ -1,6 +1,9 @@
 import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
-import type { McpServerInfo, Tool, McpConfig } from "@/types/mcp";
+import { z } from "zod";
+import { DxtManifestSchema } from "@/schemas";
+import type { McpServerInfo, Tool } from "@/types/mcp";
+import { DxtSetting } from "@/types";
 
 interface McpStore {
   servers: McpServerInfo[];
@@ -8,7 +11,10 @@ interface McpStore {
   serverTools: Record<string, Tool[]>;
   expandedServers: Set<string>;
   loadServers: () => Promise<void>;
-  toggleServerConnection: (serverName: string) => Promise<void>;
+  toggleServerConnection: (
+    fullName: string,
+    content: DxtSetting,
+  ) => Promise<void>;
   loadServerTools: (serverName: string) => Promise<void>;
   toggleServerExpanded: (serverName: string) => void;
 }
@@ -20,65 +26,56 @@ export const useMcpStore = create<McpStore>((set, get) => ({
   expandedServers: new Set(),
   loadServers: async () => {
     try {
-      const config = await invoke<McpConfig>("load_mcp_config");
-      console.log(config);
-      const serverList: McpServerInfo[] = Object.entries(config.mcpServers).map(
-        ([name, config]) => ({
-          name,
-          config,
-          connected: false,
-        }),
-      );
-      set({ servers: serverList });
+      const manifests = await invoke("load_manifests");
+      const parsedServers = z.array(DxtManifestSchema).safeParse(manifests);
+      if (parsedServers.success) {
+        let mcpConfigs: Record<string, any> = {};
+        const serverList: McpServerInfo[] = await Promise.all(
+          parsedServers.data.map(async (manifest) => {
+            const dxt_setting = await invoke<DxtSetting>("read_dxt_setting", {
+              user: manifest.author.name,
+              repo: manifest.name,
+            });
+            console.log(dxt_setting.userConfig);
+            mcpConfigs[manifest.name] = manifest.server.mcp_config;
+
+            return {
+              fullName: `${manifest.author.name}.${manifest.name}`,
+              name: manifest.name,
+              config: manifest.server.mcp_config,
+              connected: dxt_setting.isEnabled,
+              content: dxt_setting,
+            };
+          }),
+        );
+        console.log(mcpConfigs);
+        set({ servers: serverList });
+      } else {
+        console.error(parsedServers.error);
+      }
     } catch (error) {
       console.error("Failed to load MCP servers:", error);
     }
   },
-  toggleServerConnection: async (serverName: string) => {
-    const { servers, connectedServers, serverTools, loadServerTools } = get();
-    const server = servers.find((s) => s.name === serverName);
-    if (!server) return;
+  toggleServerConnection: async (fullName: string, content: DxtSetting) => {
+    const [user, repo] = fullName.split(".");
     try {
-      if (connectedServers.has(serverName)) {
-        await invoke("disconnect_mcp_server", { name: serverName });
-        const next = new Set(connectedServers);
-        next.delete(serverName);
-        const nextTools = { ...serverTools };
-        delete nextTools[serverName];
-        set({ connectedServers: next, serverTools: nextTools });
-      } else {
-        await invoke("connect_mcp_server", {
-          name: serverName,
-          config: server.config,
-        });
-        const next = new Set(connectedServers);
-        next.add(serverName);
-        set({ connectedServers: next });
-        await loadServerTools(serverName);
-      }
-    } catch (error) {
-      console.error(`Failed to toggle server connection:`, error);
+      await invoke("save_dxt_setting", {
+        user,
+        repo,
+        content,
+      });
+      console.log("saved");
+    } catch (e) {
+      console.error(e);
     }
-  },
-  loadServerTools: async (serverName: string) => {
-    try {
-      const tools = await invoke<Tool[]>("get_available_tools", { serverName });
-      set((state) => ({
-        serverTools: { ...state.serverTools, [serverName]: tools },
-      }));
-    } catch (error) {
-      console.error(`Failed to load tools for ${serverName}:`, error);
-    }
-  },
-  toggleServerExpanded: (serverName: string) => {
     set((state) => {
-      const next = new Set(state.expandedServers);
-      if (next.has(serverName)) {
-        next.delete(serverName);
-      } else {
-        next.add(serverName);
-      }
-      return { expandedServers: next };
+      const updatedServers = state.servers.map((s) =>
+        s.fullName === fullName ? { ...s, connected: content.isEnabled } : s,
+      );
+      return { servers: updatedServers };
     });
   },
+  loadServerTools: async (serverName: string) => {},
+  toggleServerExpanded: (serverName: string) => {},
 }));

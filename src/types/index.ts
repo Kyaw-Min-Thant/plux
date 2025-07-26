@@ -1,6 +1,7 @@
 export * from "./chat";
 export * from "./mcp";
 export * from "./dxt-setting";
+export * from "./dxt-manifest";
 
 // Message type for chat messages
 export interface Message {

@@ -10,12 +10,7 @@ import McpServers from "./McpServers";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 
 export default function McpChat() {
-  const {
-    messages,
-    inputMessage,
-    setInputMessage,
-    isLoading,
-  } = useChatStore();
+  const { messages, inputMessage, setInputMessage, isLoading } = useChatStore();
 
   const { selectedProvider, providers, apiKey, selectedModel } = useProvider();
   const selectedProviderConfig = providers.find(

@@ -5,8 +5,10 @@ import { useMcpStore } from "@/hooks/useMcpStore";
 import { useEffect } from "react";
 import { McpServerTransportConfig, StdioConfig } from "@/types/mcp";
 
-function isStdioConfig(config: McpServerTransportConfig): config is StdioConfig {
-  return 'command' in config;
+function isStdioConfig(
+  config: McpServerTransportConfig,
+): config is StdioConfig {
+  return "command" in config;
 }
 
 export default function McpServers() {
@@ -25,7 +27,7 @@ export default function McpServers() {
   }, [loadServers]);
 
   return (
-    <div className="w-80 border-r bg-white overflow-y-auto">
+    <div className="w-80 border-r bg-gray-50 overflow-y-auto">
       <div className="p-4">
         <div className="space-y-2">
           {servers.map((server) => (
@@ -34,12 +36,18 @@ export default function McpServers() {
                 <span className="font-medium text-sm">{server.name}</span>
                 <div className="flex items-center">
                   <Switch
-                    checked={connectedServers.has(server.name)}
-                    onCheckedChange={() => toggleServerConnection(server.name)}
+                    checked={server.connected}
+                    onCheckedChange={async (checked) => {
+                      await toggleServerConnection(server.fullName, {
+                        ...server.content,
+                        isEnabled: checked,
+                      });
+                    }}
+                    className="data-[state=checked]:bg-green-500"
                   />
                   <button
                     onClick={() => toggleServerExpanded(server.name)}
-                    className="p-1 hover:bg-gray-100 rounded"
+                    className="p-1 hover:bg-gray-200 rounded"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>
@@ -50,7 +58,7 @@ export default function McpServers() {
                 open={expandedServers.has(server.name)}
                 onOpenChange={() => toggleServerExpanded(server.name)}
               >
-                <CollapsibleContent className="mt-2">
+                <CollapsibleContent className="mt-2 bg-white border rounded p-2 shadow-sm">
                   <div className="text-xs text-gray-600 mb-2">
                     {isStdioConfig(server.config) && (
                       <>
@@ -68,7 +76,7 @@ export default function McpServers() {
                           {serverTools[server.name].map((tool) => (
                             <div
                               key={tool.name}
-                              className="text-xs p-2 bg-gray-50 rounded"
+                              className="text-xs p-2 bg-gray-100 rounded border"
                             >
                               <div className="font-medium">{tool.name}</div>
                               {tool.description && (

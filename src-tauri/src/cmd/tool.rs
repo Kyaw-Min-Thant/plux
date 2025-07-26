@@ -2,6 +2,7 @@ use crate::config::mcp::{McpConfig, McpServerTransportConfig};
 use rmcp::model::Tool as McpTool;
 use std::collections::HashMap;
 
+// get tool_set
 #[tauri::command]
 pub async fn list_tools(
     mcp_configs: HashMap<String, McpServerTransportConfig>,

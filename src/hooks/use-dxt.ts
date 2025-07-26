@@ -1,4 +1,4 @@
-import { create } from "zustand";
+import { DxtManifest } from "@/types";
 
 export function sanitizeManifest(raw: any) {
   return {
@@ -21,4 +21,26 @@ export function sanitizeManifest(raw: any) {
     compatibility: raw.compatibility ?? {},
     // add more fields as needed
   };
+}
+
+// Helper to merge userConfig into mcp_config
+export function getMergedMcpConfig(
+  manifest: DxtManifest,
+  userConfig: Record<string, any>,
+) {
+  const baseConfig = structuredClone(manifest?.server.mcp_config || {}) as any;
+  // If there's an env object, update it with matching userConfig keys
+  if (baseConfig.env && typeof baseConfig.env === "object") {
+    for (const [k, v] of Object.entries(userConfig)) {
+      if (k in baseConfig.env) {
+        baseConfig.env[k] = v;
+      } else {
+        baseConfig[k] = v;
+      }
+    }
+  } else {
+    // No env object, just shallow merge
+    Object.assign(baseConfig, userConfig);
+  }
+  return baseConfig;
 }

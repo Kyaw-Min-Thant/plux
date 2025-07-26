@@ -1,3 +1,5 @@
+import { DxtSetting } from "./dxt-setting";
+
 export type StdioConfig = {
   command: string;
   args?: string[];
@@ -15,9 +17,11 @@ export type McpConfig = {
 };
 
 export interface McpServerInfo {
+  fullName: string;
   name: string;
   config: McpServerTransportConfig;
   connected: boolean;
+  content: DxtSetting;
 }
 
 export interface Tool {

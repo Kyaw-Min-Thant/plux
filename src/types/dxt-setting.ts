@@ -1,4 +1,4 @@
 export type DxtSetting = {
-    isEnabled: boolean;
-    userConfig: Record<string, any>;
-  }
+  isEnabled: boolean;
+  userConfig: Record<string, any>;
+};

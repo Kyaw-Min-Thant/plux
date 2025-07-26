@@ -8,22 +8,22 @@ import { DxtManifestSchema } from "@/schemas";
 import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { z } from "zod";
 import { toast } from "sonner";
-import { DxtSetting } from "@/types";
+import { DxtManifest, DxtSetting } from "@/types";
 
 export default function DxtDetail() {
   const { user, repo } = useParams();
 
-  const [manifest, setManifest] = useState<z.infer<
-    typeof DxtManifestSchema
-  > | null>(null);
+  const [manifest, setManifest] = useState<DxtManifest | null>(null);
   const [userConfig, setUserConfig] = useState<Record<string, any>>({});
   const [enabled, setEnabled] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
 
   async function readDxtSetting() {
-    const setting = await invoke<DxtSetting>("read_dxt_setting", { user, repo });
+    const setting = await invoke<DxtSetting>("read_dxt_setting", {
+      user,
+      repo,
+    });
     setIsInstalled(true);
     setEnabled(setting.isEnabled);
     setUserConfig(setting.userConfig);
@@ -41,34 +41,12 @@ export default function DxtDetail() {
       readDxtSetting();
     } catch (e) {
       console.error(e);
-      getMergedMcpConfig();
     }
   }, [user, repo]);
 
   if (!manifest) return <div className="p-4">Not found</div>;
 
   const userConfigSchema = manifest.user_config ?? {};
-
-  // Helper to merge userConfig into mcp_config
-  function getMergedMcpConfig() {
-    const baseConfig = structuredClone(
-      manifest?.server.mcp_config || {},
-    ) as any;
-    // If there's an env object, update it with matching userConfig keys
-    if (baseConfig.env && typeof baseConfig.env === "object") {
-      for (const [k, v] of Object.entries(userConfig)) {
-        if (k in baseConfig.env) {
-          baseConfig.env[k] = v;
-        } else {
-          baseConfig[k] = v;
-        }
-      }
-    } else {
-      // No env object, just shallow merge
-      Object.assign(baseConfig, userConfig);
-    }
-    return baseConfig;
-  }
 
   async function saveDxtSetting() {
     const content = { isEnabled: enabled, userConfig };
