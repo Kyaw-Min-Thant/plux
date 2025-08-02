@@ -7,13 +7,6 @@
       ],
       "command": "npx"
     },
-    "desktop-commander": {
-      "args": [
-        "-y",
-        "@wonderwhy-er/desktop-commander"
-      ],
-      "command": "npx"
-    },
     "filesystem": {
       "args": [
         "-y",

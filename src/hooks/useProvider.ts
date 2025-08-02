@@ -9,8 +9,8 @@ export interface ProviderConfig {
 
 const PROVIDERS: ProviderConfig[] = [
   {
-    value: "claude",
-    label: "Claude",
+    value: "anthropic",
+    label: "Anthropic",
     models: [
       "claude-4-sonnet",
       "claude-4-opus",
@@ -29,18 +29,18 @@ const PROVIDERS: ProviderConfig[] = [
     label: "OpenRouter",
     models: [
       "anthropic/claude-4-sonnet",
-      "openai/gpt-4o",
       "meta-llama/llama-3-70b",
     ],
   },
   {
-    value: "gemini",
-    label: "Gemini",
+    value: "google",
+    label: "Google",
     models: [
       "gemini-2.5-pro",
       "gemini-2.5-flash",
-      "gemini-2.0-flash",
+      "gemini-2.5-flash-lite",
       "gemini-2.0-pro",
+      "gemini-2.0-flash",
       "gemini-1.5-pro",
     ],
   },
@@ -49,7 +49,6 @@ const PROVIDERS: ProviderConfig[] = [
 export function useProvider() {
   const [selectedProvider, setSelectedProviderState] = useState<Provider>(
     () => {
-      // Load from localStorage or default to 'openai'
       return (localStorage.getItem("selectedProvider") as Provider) || "openai";
     },
   );

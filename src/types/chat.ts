@@ -11,7 +11,7 @@ export interface ChatRequest {
   model: string;
 }
 
-export type Provider = "claude" | "openai" | "openrouter" | "gemini";
+export type Provider = "anthropic" | "openai" | "openrouter" | "google";
 
 export interface AppConfig {
   provider?: string;

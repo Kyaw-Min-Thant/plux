@@ -56,7 +56,7 @@ export default function McpProviderSelector() {
         >
           <span>
             {selectedProviderObj
-              ? selectedProviderObj.label
+              ? `${selectedProviderObj.label} ${selectedModel}`
               : "Choose provider"}
           </span>
         </Button>

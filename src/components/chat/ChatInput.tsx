@@ -34,7 +34,7 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
         <div className="absolute bottom-2 left-2 right-2 flex justify-between items-center">
           <ServersPopover />
           <div className="flex items-center gap-2">
-            <div className="max-w-[200px]">
+            <div className="max-w-72">
               <McpProviderSelector />
             </div>
             <Button

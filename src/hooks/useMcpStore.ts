@@ -19,7 +19,7 @@ interface McpStore {
   toggleServerExpanded: (serverName: string) => void;
 }
 
-export const useMcpStore = create<McpStore>((set, get) => ({
+export const useMcpStore = create<McpStore>((set) => ({
   servers: [],
   connectedServers: new Set(),
   serverTools: {},
@@ -76,6 +76,6 @@ export const useMcpStore = create<McpStore>((set, get) => ({
       return { servers: updatedServers };
     });
   },
-  loadServerTools: async (serverName: string) => {},
-  toggleServerExpanded: (serverName: string) => {},
+  loadServerTools: async (_serverName: string) => {},
+  toggleServerExpanded: (_serverName: string) => {},
 }));
