@@ -29,10 +29,11 @@ interface FileEntry {
 interface FileTreeProps {
   currentFolder?: string;
   onAddToChat?: (path: string) => void;
+  onFileClick?: (path: string) => void;
 }
 
 
-export function FileTree({ currentFolder, onAddToChat }: FileTreeProps) {
+export function FileTree({ currentFolder, onAddToChat, onFileClick }: FileTreeProps) {
   const [entries, setEntries] = useState<FileEntry[]>([]);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
@@ -100,6 +101,12 @@ export function FileTree({ currentFolder, onAddToChat }: FileTreeProps) {
     }
   };
 
+  const handleFileClick = (path: string, isDirectory: boolean) => {
+    if (!isDirectory && onFileClick) {
+      onFileClick(path);
+    }
+  };
+
   const handleSetWorkingFolder = (folderPath: string) => {
     setCurrentFolder(folderPath);
     loadDirectory(folderPath);
@@ -124,9 +131,7 @@ export function FileTree({ currentFolder, onAddToChat }: FileTreeProps) {
 
   const getFileIcon = (entry: FileEntry) => {
     if (entry.is_directory) {
-      return expandedFolders.has(entry.path) ? 
-        <FolderOpen className="w-4 h-4 text-blue-500" /> : 
-        <Folder className="w-4 h-4 text-blue-500" />;
+      return null;
     }
     return <File className="w-4 h-4 text-gray-500" />;
   };
@@ -152,23 +157,29 @@ export function FileTree({ currentFolder, onAddToChat }: FileTreeProps) {
         style={{ marginLeft: `${level * 16}px` }}
         onMouseEnter={handleMouseEnter}
       >
-        <div className="flex items-center gap-1 py-1 px-1 hover:bg-gray-100 rounded">
+        <div className="flex items-center gap-0.5 py-1 px-1 hover:bg-gray-100 rounded">
           {entry.is_directory && (
             <Button
               variant="ghost"
               size="icon"
-              className="p-1 w-5 h-5 mr-0.5"
+              className="p-0.5 w-4 h-4"
               onClick={() => toggleFolder(entry.path)}
             >
-              {expandedFolders.has(entry.path) ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+              {expandedFolders.has(entry.path) ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
             </Button>
           )}
           
           {getFileIcon(entry)}
           
           <span 
-            className="flex-1 text-sm cursor-pointer"
-            onClick={() => entry.is_directory && toggleFolder(entry.path)}
+            className="flex-1 text-sm cursor-pointer hover:text-blue-600"
+            onClick={() => {
+              if (entry.is_directory) {
+                toggleFolder(entry.path);
+              } else {
+                handleFileClick(entry.path, entry.is_directory);
+              }
+            }}
           >
             {entry.name}
           </span>

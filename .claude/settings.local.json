@@ -4,7 +4,9 @@
       "Bash(npm run tauri:*)",
       "Bash(npm run build:*)",
       "Bash(cargo check:*)",
-      "Bash(bun run:*)"
+      "Bash(bun run:*)",
+      "Bash(bun add:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }

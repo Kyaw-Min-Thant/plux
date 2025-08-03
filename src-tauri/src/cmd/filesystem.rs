@@ -99,6 +99,33 @@ pub async fn get_default_directories() -> Result<Vec<String>, String> {
 }
 
 #[tauri::command]
+pub async fn read_file(file_path: String) -> Result<String, String> {
+    let expanded_path = if file_path.starts_with("~/") {
+        let home = dirs::home_dir()
+            .ok_or_else(|| "Cannot find home directory".to_string())?;
+        home.join(&file_path[2..])
+    } else {
+        Path::new(&file_path).to_path_buf()
+    };
+    
+    if !expanded_path.exists() || expanded_path.is_dir() {
+        return Err("File does not exist or is a directory".to_string());
+    }
+    
+    // Check file size to prevent reading very large files
+    if let Ok(metadata) = fs::metadata(&expanded_path) {
+        if metadata.len() > 1024 * 1024 { // 1MB limit
+            return Err("File is too large to display".to_string());
+        }
+    }
+    
+    match fs::read_to_string(&expanded_path) {
+        Ok(content) => Ok(content),
+        Err(e) => Err(format!("Failed to read file: {}", e)),
+    }
+}
+
+#[tauri::command]
 pub async fn calculate_file_tokens(file_path: String) -> Result<Option<u32>, String> {
     let path = Path::new(&file_path);
     
