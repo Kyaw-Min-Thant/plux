@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run tauri:*)",
+      "Bash(npm run build:*)",
+      "Bash(cargo check:*)"
+    ],
+    "deny": []
+  }
+}

@@ -48,28 +48,30 @@ impl ChatSession {
             }
         } else {
             // check if message contains tool call
-            if response.content.contains("Tool:") {
-                let lines: Vec<&str> = response.content.split('\n').collect();
-                // simple parse tool call
-                let mut tool_name = None;
-                let mut args_text = Vec::new();
-                let mut parsing_args = false;
+            if let Some(content) = &response.content {
+                if content.contains("Tool:") {
+                    let lines: Vec<&str> = content.split('\n').collect();
+                    // simple parse tool call
+                    let mut tool_name = None;
+                    let mut args_text = Vec::new();
+                    let mut parsing_args = false;
 
-                for line in lines {
-                    if line.starts_with("Tool:") {
-                        tool_name = line.strip_prefix("Tool:").map(|s| s.trim().to_string());
-                        parsing_args = false;
-                    } else if line.starts_with("Inputs:") {
-                        parsing_args = true;
-                    } else if parsing_args {
-                        args_text.push(line.trim());
+                    for line in lines {
+                        if line.starts_with("Tool:") {
+                            tool_name = line.strip_prefix("Tool:").map(|s| s.trim().to_string());
+                            parsing_args = false;
+                        } else if line.starts_with("Inputs:") {
+                            parsing_args = true;
+                        } else if parsing_args {
+                            args_text.push(line.trim());
+                        }
                     }
-                }
-                if let Some(name) = tool_name {
-                    tool_calls_func.push(ToolFunction {
-                        name,
-                        arguments: args_text.join("\n"),
-                    });
+                    if let Some(name) = tool_name {
+                        tool_calls_func.push(ToolFunction {
+                            name,
+                            arguments: args_text.join("\n"),
+                        });
+                    }
                 }
             }
         }
@@ -81,24 +83,58 @@ impl ChatSession {
                 // call tool
                 let args = serde_json::from_str::<serde_json::Value>(&tool_call.arguments)
                     .unwrap_or_default();
+                println!("Calling tool: {} with args: {}", tool_call.name, args);
                 match tool.call(args).await {
                     Ok(result) => {
+                        println!("Tool call result: {:?}", result);
                         if result.is_error.is_some_and(|b| b) {
                             self.messages
                                 .push(Message::user("tool call failed, mcp call error"));
                         } else {
+                            if result.content.is_empty() {
+                                println!("Tool result has empty content");
+                            }
                             result.content.iter().for_each(|content| {
-                                if let Some(content_text) = content.as_text() {
-                                    let json_result = serde_json::from_str::<serde_json::Value>(
-                                        &content_text.text,
-                                    )
-                                    .unwrap_or_default();
-                                    let pretty_result =
-                                        serde_json::to_string_pretty(&json_result).unwrap();
-                                    println!("call tool result: {}", pretty_result);
+                                println!("Processing content: {:?}", content);
+                                
+                                // Extract text from different possible content formats
+                                let text_content = if let Some(content_text) = content.as_text() {
+                                    Some(content_text.text.clone())
+                                } else {
+                                    // Try to extract text directly from debug format if as_text() fails
+                                    let debug_str = format!("{:?}", content);
+                                    if debug_str.contains("text: \"") {
+                                        debug_str
+                                            .split("text: \"")
+                                            .nth(1)
+                                            .and_then(|s| s.split("\"").next())
+                                            .map(|s| s.replace("\\n", "\n"))
+                                    } else {
+                                        None
+                                    }
+                                };
+                                
+                                if let Some(text) = text_content {
+                                    println!("Extracted text: {}", text);
+                                    // Try to parse as JSON, but fallback to plain text
+                                    let result_text = if let Ok(json_val) = serde_json::from_str::<serde_json::Value>(&text) {
+                                        serde_json::to_string_pretty(&json_val).unwrap_or(text.clone())
+                                    } else {
+                                        text.clone()
+                                    };
+                                    
+                                    println!("call tool result: {}", result_text);
                                     self.messages.push(Message::user(format!(
-                                        "call tool result: {}",
-                                        pretty_result
+                                        "Tool result: {}",
+                                        result_text
+                                    )));
+                                } else {
+                                    println!("Could not extract text from content: {:?}", content);
+                                    // Fallback: use the debug representation
+                                    let fallback_text = format!("{:?}", content);
+                                    self.messages.push(Message::user(format!(
+                                        "Tool result (raw): {}",
+                                        fallback_text
                                     )));
                                 }
                             });
@@ -129,11 +165,11 @@ impl ChatSession {
                 Some(
                     tools
                         .iter()
-                        .map(|tool| Tool {
-                            name: tool.name(),
-                            description: tool.description(),
-                            parameters: tool.parameters(),
-                        })
+                        .map(|tool| Tool::openai_format(
+                            tool.name(),
+                            tool.description(),
+                            tool.parameters(),
+                        ))
                         .collect(),
                 )
             } else {

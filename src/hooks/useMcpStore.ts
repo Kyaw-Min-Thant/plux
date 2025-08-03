@@ -86,8 +86,7 @@ export const useMcpStore = create<McpStore>((set) => ({
     });
   },
   loadServerTools: async (_serverName: string) => {
-    const tools = invoke("list_tools")
-
+    // TODO: Implement server tools loading
   },
   toggleServerExpanded: (_serverName: string) => {},
   setProvider: (provider) => set({ provider }),

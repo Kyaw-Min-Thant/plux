@@ -10,6 +10,7 @@ use cmd::{
     chat::{ChatState, list_tools},
     dxt::{fetch_and_save_manifest, load_manifest, load_manifests},
     dxt_status::{read_dxt_setting, save_dxt_setting},
+    filesystem::{read_directory, get_default_directories, calculate_file_tokens},
 };
 use mcp_client::tool::ToolSet;
 
@@ -55,6 +56,9 @@ pub fn run() {
             read_dxt_setting,
             cmd::chat::send_message,
             list_tools,
+            read_directory,
+            get_default_directories,
+            calculate_file_tokens,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -43,6 +43,8 @@ pub async fn send_message(
             || session_model.is_some_and(|m| m != request.model);
 
         if should_recreate_session {
+            println!("Creating new session with provider: {}, api_key length: {}", 
+                     request.provider, request.api_key.len());
             let client: Arc<dyn ChatClient> = if request.provider == "google" {
                 Arc::new(GeminiClient::new(request.api_key, None, None))
             } else {

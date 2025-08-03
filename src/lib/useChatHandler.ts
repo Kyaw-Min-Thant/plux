@@ -1,7 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { ChatMessage } from "@/types/chat";
 import { useChatStore } from "@/hooks/useChatStore";
-import { useMcpStore } from "@/hooks/useMcpStore";
 
 export const handleSendMessage = async () => {
   const { inputMessage, messages } = useChatStore.getState();
@@ -21,15 +20,18 @@ export const handleSendMessage = async () => {
     isLoading: true,
   });
 
-  const { provider, apiKey, model } = useMcpStore.getState();
+  // Get provider config from localStorage
+  const storedProvider = localStorage.getItem("selectedProvider") || "openai";
+  const storedModel = localStorage.getItem("selectedModel") || "";
+  const storedApiKey = localStorage.getItem(`${storedProvider}_API_KEY`) || "";
 
   try {
     const response = await invoke<ChatMessage[]>("send_message", {
       request: {
         message: inputMessage,
-        provider,
-        apiKey,
-        model,
+        provider: storedProvider,
+        api_key: storedApiKey,
+        model: storedModel,
       },
     });
     

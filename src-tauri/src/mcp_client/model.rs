@@ -3,7 +3,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Message {
     pub role: String,
-    pub content: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub content: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_calls: Option<Vec<ToolCall>>,
 }
@@ -12,7 +13,7 @@ impl Message {
     pub fn system(content: impl ToString) -> Self {
         Self {
             role: "system".to_string(),
-            content: content.to_string(),
+            content: Some(content.to_string()),
             tool_calls: None,
         }
     }
@@ -20,7 +21,7 @@ impl Message {
     pub fn user(content: impl ToString) -> Self {
         Self {
             role: "user".to_string(),
-            content: content.to_string(),
+            content: Some(content.to_string()),
             tool_calls: None,
         }
     }
@@ -36,11 +37,50 @@ pub struct CompletionRequest {
     pub tools: Option<Vec<Tool>>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Tool {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub r#type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub function: Option<ToolDefinition>,
+    // OpenAI format (for backward compatibility)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub parameters: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ToolDefinition {
     pub name: String,
     pub description: String,
     pub parameters: serde_json::Value,
+}
+
+impl Tool {
+    // Create OpenAI format tool (for OpenAI client)
+    pub fn openai_format(name: String, description: String, parameters: serde_json::Value) -> Self {
+        Self {
+            r#type: None,
+            function: None,
+            name: Some(name),
+            description: Some(description),
+            parameters: Some(parameters),
+        }
+    }
+
+    // Create Gemini format tool (for Gemini client)
+    pub fn gemini_format(name: String, description: String, parameters: serde_json::Value) -> Self {
+        Self {
+            r#type: Some("function".to_string()),
+            function: Some(ToolDefinition { name, description, parameters }),
+            name: None,
+            description: None,
+            parameters: None,
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
