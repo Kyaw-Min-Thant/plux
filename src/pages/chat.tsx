@@ -3,10 +3,12 @@ import { handleSendMessage } from "@/lib/useChatHandler";
 import { MessageList, ChatInput } from "@/components/chat";
 import { FileTree } from "@/components/FileTree";
 import { useLocation } from "react-router-dom";
+import { useFolderStore } from "@/hooks/useFolderStore";
 
 export default function ChatPage() {
   const { messages, isLoading } = useChatStore();
   const location = useLocation();
+  const { currentFolder: storedCurrentFolder } = useFolderStore();
 
   const handleSend = () => {
     handleSendMessage();
@@ -25,6 +27,10 @@ export default function ChatPage() {
         return "~/Movies";
       case "/music":
         return "~/Music";
+      case "/":
+        return storedCurrentFolder && storedCurrentFolder !== "~/" ? storedCurrentFolder : "~/"; // Use stored folder only if not home, otherwise use home
+      case "/history":
+        return storedCurrentFolder || undefined; // Use stored folder for /history route
       default:
         return undefined; // Home directory
     }

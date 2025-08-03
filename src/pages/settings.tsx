@@ -1,5 +1,10 @@
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { X, Plus } from "lucide-react";
 import { useProvider } from "@/hooks/useProvider";
+import { useSettingsStore } from "@/hooks/useSettingsStore";
+import { useState } from "react";
 
 function SettingsPage() {
   const {
@@ -11,6 +16,15 @@ function SettingsPage() {
     models,
   } = useProvider();
 
+  const { excludeFolders, addExcludeFolder, removeExcludeFolder } = useSettingsStore();
+  const [newExcludeFolder, setNewExcludeFolder] = useState("");
+
+  const handleAddExcludeFolder = () => {
+    if (newExcludeFolder.trim() && !excludeFolders.includes(newExcludeFolder.trim())) {
+      addExcludeFolder(newExcludeFolder.trim());
+      setNewExcludeFolder("");
+    }
+  };
 
   return (
     <div className="p-6">
@@ -54,6 +68,42 @@ function SettingsPage() {
               >
                 {model}
               </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex flex-col space-y-4 max-w-sm">
+          <label className="text-xs text-gray-500">Exclude Folders from File Tree</label>
+          
+          <div className="flex gap-2">
+            <Input
+              type="text"
+              value={newExcludeFolder}
+              onChange={(e) => setNewExcludeFolder(e.target.value)}
+              placeholder="Add folder to exclude"
+              onKeyDown={(e) => e.key === "Enter" && handleAddExcludeFolder()}
+              className="text-sm"
+            />
+            <Button
+              size="sm"
+              onClick={handleAddExcludeFolder}
+              disabled={!newExcludeFolder.trim() || excludeFolders.includes(newExcludeFolder.trim())}
+            >
+              <Plus className="w-4 h-4" />
+            </Button>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {excludeFolders.map((folder) => (
+              <Badge
+                key={folder}
+                variant="secondary"
+                className="flex items-center gap-1 cursor-pointer hover:bg-gray-200"
+                onClick={() => removeExcludeFolder(folder)}
+              >
+                {folder}
+                <X className="w-3 h-3" />
+              </Badge>
             ))}
           </div>
         </div>

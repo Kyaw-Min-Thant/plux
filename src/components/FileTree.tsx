@@ -11,9 +11,12 @@ import {
   Plus, 
   Filter,
   ChevronRight,
-  ChevronDown 
+  ChevronDown,
+  FolderCheck
 } from "lucide-react";
 import { useChatStore } from "@/hooks/useChatStore";
+import { useSettingsStore } from "@/hooks/useSettingsStore";
+import { useFolderStore } from "@/hooks/useFolderStore";
 
 interface FileEntry {
   name: string;
@@ -28,19 +31,6 @@ interface FileTreeProps {
   onAddToChat?: (path: string) => void;
 }
 
-const DEFAULT_FILTERED_FOLDERS = [
-  '.git',
-  'node_modules',
-  '.venv',
-  '__pycache__',
-  '.next',
-  '.nuxt',
-  'dist',
-  'build',
-  '.DS_Store',
-  'target',
-  '.cargo'
-];
 
 export function FileTree({ currentFolder, onAddToChat }: FileTreeProps) {
   const [entries, setEntries] = useState<FileEntry[]>([]);
@@ -49,19 +39,25 @@ export function FileTree({ currentFolder, onAddToChat }: FileTreeProps) {
   const [error, setError] = useState<string | null>(null);
   const [filterText, setFilterText] = useState("");
   const [showFilter, setShowFilter] = useState(false);
-  const [filteredFolders, setFilteredFolders] = useState<string[]>(DEFAULT_FILTERED_FOLDERS);
   const [tokenCache, setTokenCache] = useState<Map<string, number>>(new Map());
   const { setInputMessage, inputMessage } = useChatStore();
+  const { excludeFolders } = useSettingsStore();
+  const { currentFolder: storedCurrentFolder, setCurrentFolder } = useFolderStore();
 
   const loadDirectory = async (path?: string) => {
     setLoading(true);
     setError(null);
     
     try {
-      let targetPath = path;
+      let targetPath = path || currentFolder || storedCurrentFolder;
       if (!targetPath) {
         const defaultDirs = await invoke<string[]>("get_default_directories");
         targetPath = defaultDirs[0]; // Use home directory as default
+      }
+      
+      // Update the store with the current folder if it's different
+      if (targetPath && targetPath !== storedCurrentFolder) {
+        setCurrentFolder(targetPath);
       }
       
       const result = await invoke<FileEntry[]>("read_directory", { path: targetPath });
@@ -108,12 +104,23 @@ export function FileTree({ currentFolder, onAddToChat }: FileTreeProps) {
     }
   };
 
+  const handleSetWorkingFolder = (folderPath: string) => {
+    setCurrentFolder(folderPath);
+    loadDirectory(folderPath);
+  };
+
+  const getCurrentDirectoryName = () => {
+    const currentPath = currentFolder || storedCurrentFolder;
+    if (!currentPath) return "Home";
+    return currentPath.split('/').pop() || currentPath;
+  };
+
   const isFiltered = (entry: FileEntry): boolean => {
     if (filterText && !entry.name.toLowerCase().includes(filterText.toLowerCase())) {
       return true;
     }
     
-    if (entry.is_directory && filteredFolders.includes(entry.name)) {
+    if (entry.is_directory && excludeFolders.includes(entry.name)) {
       return true;
     }
     
@@ -150,18 +157,15 @@ export function FileTree({ currentFolder, onAddToChat }: FileTreeProps) {
         style={{ marginLeft: `${level * 16}px` }}
         onMouseEnter={handleMouseEnter}
       >
-        <div className="flex items-center gap-2 py-1 px-2 hover:bg-gray-100 rounded">
+        <div className="flex items-center gap-1 py-1 px-1 hover:bg-gray-100 rounded">
           {entry.is_directory && (
             <Button
               variant="ghost"
-              size="sm"
-              className="p-0 h-auto"
+              size="icon"
+              className="p-1 w-5 h-5 mr-0.5"
               onClick={() => toggleFolder(entry.path)}
             >
-              {expandedFolders.has(entry.path) ? 
-                <ChevronDown className="w-3 h-3" /> : 
-                <ChevronRight className="w-3 h-3" />
-              }
+              {expandedFolders.has(entry.path) ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
             </Button>
           )}
           
@@ -184,6 +188,26 @@ export function FileTree({ currentFolder, onAddToChat }: FileTreeProps) {
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>{tokens} tokens</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          
+          {entry.is_directory && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="opacity-0 group-hover:opacity-100 p-1 h-auto mr-1"
+                    onClick={() => handleSetWorkingFolder(entry.path)}
+                  >
+                    <FolderCheck className="w-3 h-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Set as working folder</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -240,8 +264,8 @@ export function FileTree({ currentFolder, onAddToChat }: FileTreeProps) {
   };
 
   useEffect(() => {
-    loadDirectory(currentFolder);
-  }, [currentFolder]);
+    loadDirectory();
+  }, [currentFolder, storedCurrentFolder]);
 
   if (loading && entries.length === 0) {
     return <div className="p-4 text-center text-gray-500">Loading files...</div>;
@@ -254,6 +278,13 @@ export function FileTree({ currentFolder, onAddToChat }: FileTreeProps) {
   return (
     <div className="w-full h-full flex flex-col">
       <div className="p-2 border-b space-y-2">
+        <div className="flex items-center gap-2 mb-2">
+          <Folder className="w-4 h-4 text-blue-500" />
+          <span className="text-sm font-medium text-gray-700 truncate" title={currentFolder || storedCurrentFolder || "Home"}>
+            {getCurrentDirectoryName()}
+          </span>
+        </div>
+        
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
@@ -272,18 +303,20 @@ export function FileTree({ currentFolder, onAddToChat }: FileTreeProps) {
         
         {showFilter && (
           <div className="text-xs">
-            <div className="mb-2 font-medium">Filtered folders:</div>
+            <div className="mb-2 font-medium">Excluded folders:</div>
             <div className="flex flex-wrap gap-1">
-              {filteredFolders.map((folder) => (
+              {excludeFolders.map((folder) => (
                 <Badge 
                   key={folder} 
                   variant="outline" 
-                  className="cursor-pointer"
-                  onClick={() => setFilteredFolders(prev => prev.filter(f => f !== folder))}
+                  className="text-xs"
                 >
-                  {folder} ×
+                  {folder}
                 </Badge>
               ))}
+            </div>
+            <div className="text-xs text-gray-400 mt-1">
+              Go to Settings to manage excluded folders
             </div>
           </div>
         )}
