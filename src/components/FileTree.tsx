@@ -42,21 +42,17 @@ export function FileTree({ currentFolder, onAddToChat }: FileTreeProps) {
   const [tokenCache, setTokenCache] = useState<Map<string, number>>(new Map());
   const { setInputMessage, inputMessage } = useChatStore();
   const { excludeFolders } = useSettingsStore();
-  const { currentFolder: storedCurrentFolder, setCurrentFolder } = useFolderStore();
+  const { setCurrentFolder } = useFolderStore();
 
   const loadDirectory = async (path?: string) => {
     setLoading(true);
     setError(null);
     
     try {
-      let targetPath = path || currentFolder || storedCurrentFolder;
+      let targetPath = path || currentFolder;
       if (!targetPath) {
         const defaultDirs = await invoke<string[]>("get_default_directories");
         targetPath = defaultDirs[0]; // Use home directory as default
-      }
-      
-      // Update the store with the current folder if it's different
-      if (targetPath && targetPath !== storedCurrentFolder) {
         setCurrentFolder(targetPath);
       }
       
@@ -110,9 +106,8 @@ export function FileTree({ currentFolder, onAddToChat }: FileTreeProps) {
   };
 
   const getCurrentDirectoryName = () => {
-    const currentPath = currentFolder || storedCurrentFolder;
-    if (!currentPath) return "Home";
-    return currentPath.split('/').pop() || currentPath;
+    if (!currentFolder) return "Home";
+    return currentFolder.split('/').pop() || currentFolder;
   };
 
   const isFiltered = (entry: FileEntry): boolean => {
@@ -265,7 +260,7 @@ export function FileTree({ currentFolder, onAddToChat }: FileTreeProps) {
 
   useEffect(() => {
     loadDirectory();
-  }, [currentFolder, storedCurrentFolder]);
+  }, [currentFolder]);
 
   if (loading && entries.length === 0) {
     return <div className="p-4 text-center text-gray-500">Loading files...</div>;
@@ -280,7 +275,7 @@ export function FileTree({ currentFolder, onAddToChat }: FileTreeProps) {
       <div className="p-2 border-b space-y-2">
         <div className="flex items-center gap-2 mb-2">
           <Folder className="w-4 h-4 text-blue-500" />
-          <span className="text-sm font-medium text-gray-700 truncate" title={currentFolder || storedCurrentFolder || "Home"}>
+          <span className="text-sm font-medium text-gray-700 truncate" title={currentFolder || "Home"}>
             {getCurrentDirectoryName()}
           </span>
         </div>

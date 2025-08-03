@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { toast } from "sonner";
 
-export default function HistoryPage() {
+export default function HomePage() {
   const { folderHistory, setCurrentFolder, removeFromHistory, clearHistory } = useFolderStore();
   const navigate = useNavigate();
 
@@ -19,42 +19,7 @@ export default function HistoryPage() {
       await invoke("read_directory", { path });
       
       setCurrentFolder(path);
-      
-      // Determine route based on folder path
-      const getRouteForPath = (folderPath: string): string => {
-        const normalizedPath = folderPath.toLowerCase();
-        
-        // Only match exact system folder paths (not nested subfolders)
-        const pathSegments = normalizedPath.split('/');
-        const lastSegment = pathSegments[pathSegments.length - 1];
-        const isDirectSystemFolder = pathSegments.length <= 3 && normalizedPath.includes('/users/');
-        
-        if ((normalizedPath === '~/documents' || 
-            (isDirectSystemFolder && lastSegment === 'documents'))) {
-          return '/documents';
-        }
-        if ((normalizedPath === '~/downloads' || 
-            (isDirectSystemFolder && lastSegment === 'downloads'))) {
-          return '/downloads';
-        }
-        if ((normalizedPath === '~/pictures' || 
-            (isDirectSystemFolder && lastSegment === 'pictures'))) {
-          return '/picture';
-        }
-        if ((normalizedPath === '~/movies' || 
-            (isDirectSystemFolder && lastSegment === 'movies'))) {
-          return '/movies';
-        }
-        if ((normalizedPath === '~/music' || 
-            (isDirectSystemFolder && lastSegment === 'music'))) {
-          return '/music';
-        }
-        
-        return '/';
-      };
-      
-      const targetRoute = getRouteForPath(path);
-      navigate(targetRoute);
+      navigate("/"); // Always navigate to root route for file browsing
     } catch (error) {
       toast.error(`Folder does not exist: ${path}`);
       // Remove the non-existent folder from history
