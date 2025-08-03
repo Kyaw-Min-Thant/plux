@@ -10,6 +10,9 @@ interface McpStore {
   connectedServers: Set<string>;
   serverTools: Record<string, Tool[]>;
   expandedServers: Set<string>;
+  provider: string;
+  apiKey: string;
+  model: string;
   loadServers: () => Promise<void>;
   toggleServerConnection: (
     fullName: string,
@@ -17,6 +20,9 @@ interface McpStore {
   ) => Promise<void>;
   loadServerTools: (serverName: string) => Promise<void>;
   toggleServerExpanded: (serverName: string) => void;
+  setProvider: (provider: string) => void;
+  setApiKey: (apiKey: string) => void;
+  setModel: (model: string) => void;
 }
 
 export const useMcpStore = create<McpStore>((set) => ({
@@ -24,6 +30,9 @@ export const useMcpStore = create<McpStore>((set) => ({
   connectedServers: new Set(),
   serverTools: {},
   expandedServers: new Set(),
+  provider: "openai",
+  apiKey: "",
+  model: "gpt-4o-mini",
   loadServers: async () => {
     try {
       const manifests = await invoke("load_manifests");
@@ -76,6 +85,12 @@ export const useMcpStore = create<McpStore>((set) => ({
       return { servers: updatedServers };
     });
   },
-  loadServerTools: async (_serverName: string) => {},
+  loadServerTools: async (_serverName: string) => {
+    const tools = invoke("list_tools")
+
+  },
   toggleServerExpanded: (_serverName: string) => {},
+  setProvider: (provider) => set({ provider }),
+  setApiKey: (apiKey) => set({ apiKey }),
+  setModel: (model) => set({ model }),
 }));

@@ -87,6 +87,15 @@ impl ToolSet {
     }
 }
 
+impl Clone for ToolSet {
+    fn clone(&self) -> Self {
+        Self {
+            tools: self.tools.clone(),
+            clients: HashMap::new(),
+        }
+    }
+}
+
 pub async fn get_mcp_tools(server: ServerSink) -> Result<Vec<McpToolAdapter>> {
     let tools = server.list_all_tools().await?;
     Ok(tools

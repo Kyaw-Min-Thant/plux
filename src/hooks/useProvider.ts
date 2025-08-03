@@ -17,6 +17,8 @@ const PROVIDERS: ProviderConfig[] = [
       "claude-3.7-sonnet",
       "claude-3.7-opus",
       "claude-3.7-haiku",
+      "claude-3.5-sonnet",
+      "claude-3.5-haiku",
     ],
   },
   {
@@ -36,11 +38,11 @@ const PROVIDERS: ProviderConfig[] = [
     value: "google",
     label: "Google",
     models: [
-      "gemini-2.5-pro",
       "gemini-2.5-flash",
+      "gemini-2.5-pro",
       "gemini-2.5-flash-lite",
-      "gemini-2.0-pro",
       "gemini-2.0-flash",
+      "gemini-2.0-pro",
       "gemini-1.5-pro",
     ],
   },

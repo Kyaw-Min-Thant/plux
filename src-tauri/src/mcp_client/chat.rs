@@ -30,6 +30,14 @@ impl ChatSession {
         self.messages.push(Message::system(prompt));
     }
 
+    pub fn get_tools(&self) -> Vec<Arc<dyn super::tool::Tool>> {
+        self.tool_set.tools()
+    }
+
+    pub fn get_model(&self) -> String {
+        self.model.clone()
+    }
+
     pub async fn analyze_tool_call(&mut self, response: &Message) {
         let mut tool_calls_func = Vec::new();
         if let Some(tool_calls) = response.tool_calls.as_ref() {
