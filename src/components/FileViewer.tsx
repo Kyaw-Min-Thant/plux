@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Button } from "@/components/ui/button";
 import { X, Copy, Check, Sun, Moon } from "lucide-react";
@@ -16,6 +16,7 @@ export function FileViewer({ filePath, onClose }: FileViewerProps) {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [isDarkTheme, setIsDarkTheme] = useState(false);
+  const [showFullContent, setShowFullContent] = useState(false);
 
   useEffect(() => {
     if (!filePath) {
@@ -65,7 +66,8 @@ export function FileViewer({ filePath, onClose }: FileViewerProps) {
     return lastDot > -1 ? fileName.substring(lastDot + 1).toLowerCase() : "";
   };
 
-  const getLanguage = (extension: string) => {
+  const getLanguage = useMemo(() => {
+    const extension = getFileExtension();
     const languageMap: Record<string, string> = {
       'js': 'javascript',
       'jsx': 'jsx',
@@ -101,12 +103,31 @@ export function FileViewer({ filePath, onClose }: FileViewerProps) {
       'gitignore': 'gitignore'
     };
     return languageMap[extension] || 'text';
-  };
+  }, [filePath]);
 
-  const isCodeFile = () => {
-    const extension = getFileExtension();
-    return getLanguage(extension) !== 'text';
-  };
+  const isCodeFile = useMemo(() => {
+    return getLanguage !== 'text';
+  }, [getLanguage]);
+
+  const MAX_LINES = 500;
+  
+  const displayContent = useMemo(() => {
+    if (!content) return '';
+    if (showFullContent) return content;
+    
+    const lines = content.split('\n');
+    if (lines.length <= MAX_LINES) return content;
+    
+    return lines.slice(0, MAX_LINES).join('\n');
+  }, [content, showFullContent]);
+
+  const isLargeFile = useMemo(() => {
+    return content.split('\n').length > MAX_LINES;
+  }, [content]);
+
+  const handleToggleContent = useCallback(() => {
+    setShowFullContent(prev => !prev);
+  }, []);
 
   if (!filePath) return null;
 
@@ -119,7 +140,18 @@ export function FileViewer({ filePath, onClose }: FileViewerProps) {
           </span>
         </div>
         <div className="flex items-center gap-1">
-          {isCodeFile() && (
+          {isLargeFile && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleToggleContent}
+              className="p-1 h-auto text-xs"
+              title={`${showFullContent ? 'Show first 500 lines' : 'Show all lines'} (${content.split('\n').length} total)`}
+            >
+              {showFullContent ? '500' : 'All'}
+            </Button>
+          )}
+          {isCodeFile && (
             <Button
               variant="ghost"
               size="sm"
@@ -163,26 +195,58 @@ export function FileViewer({ filePath, onClose }: FileViewerProps) {
           <div className="p-4 text-center text-gray-500">Loading file...</div>
         ) : error ? (
           <div className="p-4 text-center text-red-500">{error}</div>
-        ) : isCodeFile() ? (
-          <SyntaxHighlighter
-            language={getLanguage(getFileExtension())}
-            style={isDarkTheme ? tomorrow : prism}
-            customStyle={{
-              margin: 0,
-              padding: '1rem',
-              background: 'transparent',
-              fontSize: '0.875rem',
-            }}
-            showLineNumbers={true}
-            wrapLines={true}
-            wrapLongLines={true}
-          >
-            {content}
-          </SyntaxHighlighter>
+        ) : isCodeFile ? (
+          <div>
+            <SyntaxHighlighter
+              language={getLanguage}
+              style={isDarkTheme ? tomorrow : prism}
+              customStyle={{
+                margin: 0,
+                padding: '1rem',
+                background: 'transparent',
+                fontSize: '0.875rem',
+              }}
+              showLineNumbers={true}
+              wrapLines={true}
+              wrapLongLines={true}
+            >
+              {displayContent}
+            </SyntaxHighlighter>
+            {isLargeFile && !showFullContent && (
+              <div className="p-4 text-center border-t border-gray-200 bg-gray-50">
+                <p className="text-sm text-gray-600 mb-2">
+                  Showing first {MAX_LINES} lines of {content.split('\n').length} total lines
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleToggleContent}
+                >
+                  Show All Lines
+                </Button>
+              </div>
+            )}
+          </div>
         ) : (
-          <pre className="p-4 text-sm font-mono whitespace-pre-wrap break-words">
-            {content}
-          </pre>
+          <div>
+            <pre className="p-4 text-sm font-mono whitespace-pre-wrap break-words">
+              {displayContent}
+            </pre>
+            {isLargeFile && !showFullContent && (
+              <div className="p-4 text-center border-t border-gray-200 bg-gray-50">
+                <p className="text-sm text-gray-600 mb-2">
+                  Showing first {MAX_LINES} lines of {content.split('\n').length} total lines
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleToggleContent}
+                >
+                  Show All Lines
+                </Button>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>
