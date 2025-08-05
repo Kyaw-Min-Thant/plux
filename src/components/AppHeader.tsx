@@ -22,7 +22,7 @@ const folderButtons = [
 ];
 
 const routeLinks = [
-  { to: "/home", icon: <History /> },
+  { to: "/welcome", icon: <History /> },
   { to: "/dxt", icon: <Usb /> },
   { to: "/settings", icon: <Settings /> },
 ];
@@ -39,8 +39,8 @@ export function AppHeader() {
   return (
     <div className="flex mt-2 justify-between px-2">
       <span className="flex gap-2">
-        {/* History button */}
-        <Link to="/home">
+        {/* Welcome button */}
+        <Link to="/welcome">
           <History />
         </Link>
         

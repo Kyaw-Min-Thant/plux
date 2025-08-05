@@ -1,96 +1,144 @@
-import { useFolderStore } from "@/hooks/useFolderStore";
 import { Button } from "@/components/ui/button";
-import { Folder, Trash2 } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { FileText, MessageSquare, FolderOpen, Plus, Settings, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { invoke } from "@tauri-apps/api/core";
-import { toast } from "sonner";
 
 export default function HomePage() {
-  const { folderHistory, setCurrentFolder, removeFromHistory, clearHistory } = useFolderStore();
   const navigate = useNavigate();
 
-  const uniqueFolders = folderHistory.filter((folder, index, array) => 
-    array.findIndex(f => f.path === folder.path) === index
-  );
-
-  const handleFolderClick = async (path: string) => {
-    try {
-      // Check if folder exists by trying to read it
-      await invoke("read_directory", { path });
-      
-      setCurrentFolder(path);
-      navigate("/"); // Always navigate to root route for file browsing
-    } catch (error) {
-      toast.error(`Folder does not exist: ${path}`);
-      // Remove the non-existent folder from history
-      removeFromHistory(path);
+  const features = [
+    {
+      icon: <FileText className="w-5 h-5" />,
+      title: "File Explorer",
+      description: "Browse and explore your project files with an intuitive tree structure"
+    },
+    {
+      icon: <Plus className="w-5 h-5" />,
+      title: "Context Management",
+      description: "Add files to AI context by clicking the + button in the file tree"
+    },
+    {
+      icon: <MessageSquare className="w-5 h-5" />,
+      title: "AI Chat Interface",
+      description: "Chat with AI about your project with file context automatically included"
+    },
+    {
+      icon: <Settings className="w-5 h-5" />,
+      title: "MCP Integration",
+      description: "Connect with Model Context Protocol servers for enhanced functionality"
     }
-  };
+  ];
 
-  const formatLastVisited = (timestamp: number) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
-    if (diffHours < 1) return "Just now";
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffHours < 168) return `${Math.floor(diffHours / 24)}d ago`;
-    return date.toLocaleDateString();
-  };
+  const quickActions = [
+    {
+      label: "Start Chat",
+      action: () => {
+        // Force navigation to chat page by providing a dummy message or context
+        navigate("/");
+      },
+      icon: <MessageSquare className="w-4 h-4" />,
+      variant: "default" as const
+    },
+    {
+      label: "Settings", 
+      action: () => navigate("/settings"),
+      icon: <Settings className="w-4 h-4" />,
+      variant: "outline" as const
+    }
+  ];
 
   return (
-    <div className="p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-lg font-semibold">Recent Folders</h1>
-        {uniqueFolders.length > 0 && (
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={clearHistory}
-            className="text-red-600 hover:text-red-700"
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
-        )}
+    <div className="max-w-4xl mx-auto p-6 space-y-8">
+      {/* Header */}
+      <div className="text-center space-y-4">
+        <div className="flex items-center justify-center gap-2">
+          <Zap className="w-8 h-8 text-blue-600" />
+          <h1 className="text-3xl font-bold">Plux</h1>
+        </div>
+        <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          A powerful desktop application for interacting with AI models using file context. 
+          Browse your projects, add files to context, and chat with AI about your file.
+        </p>
       </div>
 
-      {uniqueFolders.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
-          No recent folders
-        </div>
-      ) : (
-        <div className="space-y-1">
-          {uniqueFolders.map((folder) => (
-            <div 
-              key={folder.path} 
-              className="flex items-center justify-between p-2 hover:bg-gray-100 rounded cursor-pointer group"
-              onClick={() => handleFolderClick(folder.path)}
-            >
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <Folder className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <div className="font-medium text-sm truncate">{folder.name}</div>
-                  <div className="text-xs text-gray-500 truncate">{folder.path}</div>
+      {/* Quick Actions */}
+      <div className="flex justify-center gap-4">
+        {quickActions.map((action) => (
+          <Button
+            key={action.label}
+            variant={action.variant}
+            onClick={action.action}
+            className="flex items-center gap-2"
+          >
+            {action.icon}
+            {action.label}
+          </Button>
+        ))}
+      </div>
+
+      {/* Features */}
+      <div className="grid md:grid-cols-2 gap-6">
+        {features.map((feature, index) => (
+          <Card key={index} className="hover:shadow-md transition-shadow">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                  {feature.icon}
                 </div>
-                <div className="text-xs text-gray-400 flex-shrink-0">
-                  {formatLastVisited(folder.lastVisited)}
-                </div>
+                {feature.title}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription className="text-base">
+                {feature.description}
+              </CardDescription>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* How to Use */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FolderOpen className="w-5 h-5" />
+            How to Use
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-3">
+            <div className="flex items-start gap-3">
+              <Badge variant="outline" className="mt-0.5">1</Badge>
+              <div>
+                <p className="font-medium">Navigate to Chat</p>
+                <p className="text-sm text-gray-600">Click "Start Chat" or use the main chat interface</p>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="opacity-0 group-hover:opacity-100 p-1 h-auto ml-2 text-red-500 hover:text-red-700"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  removeFromHistory(folder.path);
-                }}
-              >
-                <Trash2 className="w-3 h-3" />
-              </Button>
             </div>
-          ))}
-        </div>
-      )}
+            <div className="flex items-start gap-3">
+              <Badge variant="outline" className="mt-0.5">2</Badge>
+              <div>
+                <p className="font-medium">Browse Files</p>
+                <p className="text-sm text-gray-600">Use the file tree on the left to explore your project</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <Badge variant="outline" className="mt-0.5">3</Badge>
+              <div>
+                <p className="font-medium">Add Context</p>
+                <p className="text-sm text-gray-600">Click the + button next to any file or folder to add it to your chat context</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <Badge variant="outline" className="mt-0.5">4</Badge>
+              <div>
+                <p className="font-medium">Chat with AI</p>
+                <p className="text-sm text-gray-600">Ask questions - the AI will have access to the files you've added</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

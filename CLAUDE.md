@@ -9,7 +9,7 @@
 - `bun dev` - Start development server
 - `bun run build` - Build the project
 - `bun add <package>` - Add dependencies
-- `bun run tauri dev` - Start Tauri development mode
+- `bun tauri dev` - Start Tauri development mode
 
 ## Project Structure
 - `src/components/` - React components

@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "tauri-mcp-client",
+  "productName": "Plux",
   "version": "0.1.0",
-  "identifier": "tauri-mcp-client",
+  "identifier": "milisp.plux",
   "build": {
     "beforeDevCommand": "bun run dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Finder",
+        "title": "Plux",
         "width": 1200,
         "height": 600,
         "minWidth": 800,

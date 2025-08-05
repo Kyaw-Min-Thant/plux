@@ -17,7 +17,7 @@ export const router = createHashRouter([
         element: <ChatPage />,
       },
       {
-        path: "home",
+        path: "welcome",
         element: <HomePage />,
       },
       {

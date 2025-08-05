@@ -1,0 +1,43 @@
+# Node/Bun dependencies
+node_modules
+.bun
+bun.lock.bak
+
+# Tauri build output
+src-tauri/target
+src-tauri/.cargo
+
+# Git and editor files
+.git
+.gitignore
+*.log
+*.swp
+*.swo
+*.tmp
+.DS_Store
+
+# OS-specific files
+Thumbs.db
+
+# Docker
+.dockerignore
+Dockerfile
+
+# Build artifacts
+dist
+build
+out
+
+# folder
+docs
+images
+scripts
+
+# files
+CHANGELOG.md
+CONTRIBUTORS
+LICENSE
+README.md
+
+.claude
+.gemini

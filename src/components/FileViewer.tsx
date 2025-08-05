@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Button } from "@/components/ui/button";
-import { X, Copy, Check, Sun, Moon } from "lucide-react";
+import { X, Copy, Check, Sun, Moon, Send } from "lucide-react";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { tomorrow, prism } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { languageMap } from "./languageMap";
+import { useChatStore } from "@/hooks/useChatStore";
 
 interface FileViewerProps {
   filePath: string | null;
@@ -17,42 +19,8 @@ export function FileViewer({ filePath, onClose }: FileViewerProps) {
   const [copied, setCopied] = useState(false);
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   const [showFullContent, setShowFullContent] = useState(false);
-
-  useEffect(() => {
-    if (!filePath) {
-      setContent("");
-      setError(null);
-      return;
-    }
-
-    const loadFile = async () => {
-      setLoading(true);
-      setError(null);
-      
-      try {
-        const fileContent = await invoke<string>("read_file", { filePath });
-        setContent(fileContent);
-      } catch (err) {
-        setError(err as string);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadFile();
-  }, [filePath]);
-
-  const handleCopy = async () => {
-    if (content) {
-      try {
-        await navigator.clipboard.writeText(content);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      } catch (err) {
-        console.error("Failed to copy content:", err);
-      }
-    }
-  };
+  const [selectedText, setSelectedText] = useState<string>("");
+  const { addFileContent } = useChatStore();
 
   const getFileName = () => {
     if (!filePath) return "";
@@ -66,42 +34,78 @@ export function FileViewer({ filePath, onClose }: FileViewerProps) {
     return lastDot > -1 ? fileName.substring(lastDot + 1).toLowerCase() : "";
   };
 
+  useEffect(() => {
+    if (!filePath) {
+      setContent("");
+      setError(null);
+      return;
+    }
+
+    const loadFile = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const extension = getFileExtension();
+        let fileContent: string;
+        
+        switch (extension) {
+          case 'pdf':
+            fileContent = await invoke<string>("read_pdf_content", { filePath });
+            break;
+          case 'csv':
+            fileContent = await invoke<string>("read_csv_content", { filePath });
+            break;
+          case 'xlsx':
+            fileContent = await invoke<string>("read_xlsx_content", { filePath });
+            break;
+          default:
+            fileContent = await invoke<string>("read_file", { filePath });
+            break;
+        }
+        
+        setContent(fileContent);
+      } catch (err) {
+        setError(err as string);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadFile();
+  }, [filePath]);
+
+  const handleCopy = async () => {
+    const textToCopy = selectedText || content;
+    if (textToCopy) {
+      try {
+        await navigator.clipboard.writeText(textToCopy);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (err) {
+        console.error("Failed to copy content:", err);
+      }
+    }
+  };
+
+  const handleSendToAI = () => {
+    if (content) {
+      const fileName = getFileName();
+      addFileContent(fileName, content, selectedText || undefined);
+      onClose(); // Close the file viewer and navigate to chat
+    }
+  };
+
+  const handleTextSelection = () => {
+    const selection = window.getSelection();
+    if (selection) {
+      const selectedText = selection.toString().trim();
+      setSelectedText(selectedText);
+    }
+  };
+
   const getLanguage = useMemo(() => {
     const extension = getFileExtension();
-    const languageMap: Record<string, string> = {
-      'js': 'javascript',
-      'jsx': 'jsx',
-      'ts': 'typescript',
-      'tsx': 'tsx',
-      'py': 'python',
-      'java': 'java',
-      'cpp': 'cpp',
-      'c': 'c',
-      'cs': 'csharp',
-      'php': 'php',
-      'rb': 'ruby',
-      'go': 'go',
-      'rs': 'rust',
-      'swift': 'swift',
-      'kt': 'kotlin',
-      'html': 'html',
-      'css': 'css',
-      'scss': 'scss',
-      'sass': 'sass',
-      'less': 'less',
-      'json': 'json',
-      'xml': 'xml',
-      'yaml': 'yaml',
-      'yml': 'yaml',
-      'md': 'markdown',
-      'sh': 'bash',
-      'sql': 'sql',
-      'dockerfile': 'dockerfile',
-      'toml': 'toml',
-      'ini': 'ini',
-      'conf': 'ini',
-      'gitignore': 'gitignore'
-    };
     return languageMap[extension] || 'text';
   }, [filePath]);
 
@@ -140,6 +144,11 @@ export function FileViewer({ filePath, onClose }: FileViewerProps) {
           </span>
         </div>
         <div className="flex items-center gap-1">
+          {selectedText && (
+            <span className="text-xs text-blue-600 mr-2">
+              {selectedText.length} chars selected
+            </span>
+          )}
           {isLargeFile && (
             <Button
               variant="ghost"
@@ -169,9 +178,20 @@ export function FileViewer({ filePath, onClose }: FileViewerProps) {
           <Button
             variant="ghost"
             size="sm"
+            onClick={handleSendToAI}
+            disabled={!content || loading}
+            className="p-1 h-auto"
+            title={selectedText ? "Send selected text to AI" : "Send file content to AI"}
+          >
+            <Send className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={handleCopy}
             disabled={!content || loading}
             className="p-1 h-auto"
+            title={selectedText ? "Copy selected text" : "Copy file content"}
           >
             {copied ? (
               <Check className="w-4 h-4 text-green-600" />
@@ -196,7 +216,7 @@ export function FileViewer({ filePath, onClose }: FileViewerProps) {
         ) : error ? (
           <div className="p-4 text-center text-red-500">{error}</div>
         ) : isCodeFile ? (
-          <div>
+          <div onMouseUp={handleTextSelection}>
             <SyntaxHighlighter
               language={getLanguage}
               style={isDarkTheme ? tomorrow : prism}
@@ -228,7 +248,7 @@ export function FileViewer({ filePath, onClose }: FileViewerProps) {
             )}
           </div>
         ) : (
-          <div>
+          <div onMouseUp={handleTextSelection}>
             <pre className="p-4 text-sm font-mono whitespace-pre-wrap break-words">
               {displayContent}
             </pre>

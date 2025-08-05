@@ -11,7 +11,7 @@
       "args": [
         "-y",
         "@modelcontextprotocol/server-filesystem",
-        "/tmp/"
+        "~"
       ],
       "command": "npx"
     }
