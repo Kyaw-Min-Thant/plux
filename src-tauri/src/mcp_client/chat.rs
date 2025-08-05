@@ -38,6 +38,18 @@ impl ChatSession {
         self.model.clone()
     }
 
+    pub fn get_messages(&self) -> &Vec<Message> {
+        &self.messages
+    }
+
+    pub fn get_tool_set(&self) -> &ToolSet {
+        &self.tool_set
+    }
+
+    pub fn add_user_message(&mut self, content: &str) {
+        self.messages.push(Message::user(content));
+    }
+
     pub async fn analyze_tool_call(&mut self, response: &Message) {
         let mut tool_calls_func = Vec::new();
         if let Some(tool_calls) = response.tool_calls.as_ref() {
@@ -150,6 +162,64 @@ impl ChatSession {
                 println!("tool not found: {}", tool_call.name);
             }
         }
+    }
+
+    pub async fn next_message_stream<F>(
+        &mut self,
+        input: &str,
+        support_tool: bool,
+        _on_chunk: F,
+    ) -> Result<(Message, Vec<Message>)>
+    where
+        F: FnMut(String),
+    {
+        self.messages.push(Message::user(input));
+        let tool_definitions = if support_tool {
+            // prepare tool list
+            let tools = self.tool_set.tools();
+            if !tools.is_empty() {
+                Some(
+                    tools
+                        .iter()
+                        .map(|tool| Tool::openai_format(
+                            tool.name(),
+                            tool.description(),
+                            tool.parameters(),
+                        ))
+                        .collect(),
+                )
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
+        // create request
+        let request = CompletionRequest {
+            model: self.model.clone(),
+            messages: self.messages.clone(),
+            temperature: Some(0.7),
+            tools: tool_definitions,
+        };
+
+        // For now, fallback to regular complete - streaming will be implemented later
+        let response = self.client.complete(request).await?;
+        // get choice
+        let choice = response
+            .choices
+            .first()
+            .ok_or_else(|| anyhow::anyhow!("No choice in response"))?;
+        
+        self.messages.push(choice.message.clone());
+
+        let original_message_len = self.messages.len();
+        // analyze tool call
+        self.analyze_tool_call(&choice.message).await;
+
+        let tool_messages = self.messages.split_off(original_message_len);
+
+        Ok((choice.message.clone(), tool_messages))
     }
 
     pub async fn next_message(

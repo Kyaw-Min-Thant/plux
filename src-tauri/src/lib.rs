@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 use tauri::Manager;
 
 use cmd::{
-    chat::{ChatState, list_tools},
+    chat::{ChatState, list_tools, send_message, send_message_stream},
     dxt::{fetch_and_save_manifest, load_manifest, load_manifests},
     dxt_status::{read_dxt_setting, save_dxt_setting},
     filesystem::{read_directory, get_default_directories, calculate_file_tokens, read_file, read_pdf_content, read_csv_content, read_xlsx_content},
@@ -54,7 +54,8 @@ pub fn run() {
             fetch_and_save_manifest,
             save_dxt_setting,
             read_dxt_setting,
-            cmd::chat::send_message,
+            send_message,
+            send_message_stream,
             list_tools,
             read_directory,
             get_default_directories,

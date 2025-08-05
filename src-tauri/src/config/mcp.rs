@@ -27,7 +27,7 @@ impl McpConfig {
         if !config_path.exists() {
             // try to load from home dir for backward compatibility
             let home_config_path =
-                dirs::home_dir().map(|h| h.join(".config/finder/mcp.json"));
+                dirs::home_dir().map(|h| h.join(".config/plux/mcp.json"));
             if let Some(path) = home_config_path {
                 if path.exists() {
                     let content = tokio::fs::read_to_string(path).await?;

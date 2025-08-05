@@ -2,14 +2,13 @@
 
 ## Project Info
 - Package manager: bun
-- Framework: React + TypeScript + Tauri
+- Framework: React + TypeScript + Tauri v2
 - UI: Tailwind CSS + Radix UI components
 
 ## Common Commands
-- `bun dev` - Start development server
 - `bun run build` - Build the project
 - `bun add <package>` - Add dependencies
-- `bun tauri dev` - Start Tauri development mode
+- `cd src-tauri && cargo check` - for rust
 
 ## Project Structure
 - `src/components/` - React components

@@ -1,6 +1,8 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use reqwest::Client as HttpClient;
+use futures_util::StreamExt;
+use serde_json::Value;
 
 use super::model::{CompletionRequest, CompletionResponse, Tool};
 
@@ -12,6 +14,15 @@ pub trait ChatClient: Send + Sync {
     fn transform_tools(&self, tools: &[Tool]) -> Vec<Tool> {
         tools.to_vec() // Default: no transformation
     }
+}
+
+#[async_trait]
+pub trait StreamingChatClient: ChatClient {
+    async fn complete_stream(
+        &self, 
+        request: CompletionRequest, 
+        callback: Box<dyn Fn(String) + Send + Sync>
+    ) -> Result<CompletionResponse>;
 }
 
 pub struct OpenAIClient {
@@ -65,6 +76,7 @@ impl ChatClient for OpenAIClient {
             .unwrap();
         Ok(completion)
     }
+
     
     fn transform_tools(&self, tools: &[Tool]) -> Vec<Tool> {
         tools.iter().map(|tool| {
@@ -76,6 +88,113 @@ impl ChatClient for OpenAIClient {
                 (*tool).clone() // Already in correct format or malformed
             }
         }).collect()
+    }
+}
+
+
+#[async_trait]
+impl StreamingChatClient for OpenAIClient {
+    async fn complete_stream(
+        &self, 
+        request: CompletionRequest, 
+        callback: Box<dyn Fn(String) + Send + Sync>
+    ) -> Result<CompletionResponse> {
+        println!("🚀 OpenAI complete_stream called");
+        println!("📍 Base URL: {}", self.base_url);
+        println!("🔑 API key length: {}", self.api_key.len());
+        
+        // Add stream parameter to request
+        let mut request_value = serde_json::to_value(&request)?;
+        if let Some(obj) = request_value.as_object_mut() {
+            obj.insert("stream".to_string(), Value::Bool(true));
+        }
+        
+        println!("📤 Request payload: {}", serde_json::to_string_pretty(&request_value).unwrap_or_default());
+
+        let response = self
+            .client
+            .post(&self.base_url)
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .header("Content-Type", "application/json")
+            .json(&request_value)
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            let error_text = response.text().await?;
+            println!("API error: {}", error_text);
+            return Err(anyhow::anyhow!("API Error: {}", error_text));
+        }
+
+        println!("✅ HTTP response status: {}", response.status());
+        println!("🌊 Starting to read stream...");
+        let mut stream = response.bytes_stream();
+        let mut complete_content = String::new();
+        let mut buffer = String::new();
+        let mut chunk_count = 0;
+
+        while let Some(chunk_result) = stream.next().await {
+            chunk_count += 1;
+            println!("📦 Received chunk #{}", chunk_count);
+            let chunk = chunk_result?;
+            let chunk_str = String::from_utf8_lossy(&chunk);
+            println!("📄 Raw chunk: {:?}", chunk_str);
+            buffer.push_str(&chunk_str);
+
+            // Process complete lines
+            while let Some(line_end) = buffer.find('\n') {
+                let line = buffer[..line_end].trim().to_string();
+                buffer = buffer[line_end + 1..].to_string();
+                
+                println!("📝 Processing line: {:?}", line);
+
+                if line.starts_with("data: ") {
+                    let data = &line[6..];
+                    println!("🔍 Data line: {}", data);
+                    if data == "[DONE]" {
+                        println!("🏁 Stream finished");
+                        break;
+                    }
+                    
+                    if let Ok(json) = serde_json::from_str::<Value>(data) {
+                        println!("✅ Parsed JSON: {}", json);
+                        if let Some(choices) = json.get("choices").and_then(|c| c.as_array()) {
+                            if let Some(choice) = choices.first() {
+                                if let Some(delta) = choice.get("delta") {
+                                    if let Some(content) = delta.get("content").and_then(|c| c.as_str()) {
+                                        println!("💬 Streaming content: {:?}", content);
+                                        complete_content.push_str(content);
+                                        callback(content.to_string());
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        println!("❌ Failed to parse JSON: {}", data);
+                    }
+                }
+            }
+        }
+
+        // Create a synthetic response
+        use super::model::{Choice, Message};
+        let response = CompletionResponse {
+            id: "stream_response".to_string(),
+            object: "chat.completion".to_string(),
+            created: chrono::Utc::now().timestamp() as u64,
+            model: request.model.clone(),
+            choices: vec![Choice {
+                index: 0,
+                message: Message {
+                    role: "assistant".to_string(),
+                    content: Some(complete_content),
+                    tool_calls: None,
+                },
+                finish_reason: "stop".to_string(),
+            }],
+        };
+
+        Ok(response)
     }
 }
 
@@ -149,6 +268,7 @@ impl ChatClient for GeminiClient {
             .unwrap();
         Ok(completion)
     }
+
     
     fn transform_tools(&self, tools: &[Tool]) -> Vec<Tool> {
         tools.iter().map(|tool| {
@@ -160,5 +280,108 @@ impl ChatClient for GeminiClient {
                 (*tool).clone() // Already in correct format or malformed
             }
         }).collect()
+    }
+}
+
+
+
+#[async_trait]
+impl StreamingChatClient for GeminiClient {
+    async fn complete_stream(
+        &self, 
+        request: CompletionRequest, 
+        callback: Box<dyn Fn(String) + Send + Sync>
+    ) -> Result<CompletionResponse> {
+        // Transform tools to Gemini format
+        let mut request = request;
+        if let Some(tools) = &request.tools {
+            let transformed_tools = self.transform_tools(tools);
+            request.tools = Some(transformed_tools);
+        }
+        
+        // Add stream parameter to request
+        let mut request_value = serde_json::to_value(&request)?;
+        if let Some(obj) = request_value.as_object_mut() {
+            obj.insert("stream".to_string(), Value::Bool(true));
+        }
+        
+        println!("Sending Gemini streaming request to: {}", self.base_url);
+        println!("Gemini API key length: {}", self.api_key.len());
+        println!("Gemini Request payload: {}", serde_json::to_string_pretty(&request_value).unwrap_or_default());
+        
+        let response = self
+            .client
+            .post(&self.base_url)
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .header("Content-Type", "application/json")
+            .json(&request_value)
+            .send()
+            .await
+            .map_err(|e| {
+                println!("Gemini Network error: {:?}", e);
+                e
+            })?;
+
+        if !response.status().is_success() {
+            let error_text = response.text().await?;
+            println!("Gemini API error: {}", error_text);
+            return Err(anyhow::anyhow!("Gemini API Error: {}", error_text));
+        }
+
+        let mut stream = response.bytes_stream();
+        let mut complete_content = String::new();
+        let mut buffer = String::new();
+
+        while let Some(chunk_result) = stream.next().await {
+            let chunk = chunk_result?;
+            let chunk_str = String::from_utf8_lossy(&chunk);
+            buffer.push_str(&chunk_str);
+
+            // Process complete lines
+            while let Some(line_end) = buffer.find('\n') {
+                let line = buffer[..line_end].trim().to_string();
+                buffer = buffer[line_end + 1..].to_string();
+
+                if line.starts_with("data: ") {
+                    let data = &line[6..];
+                    if data == "[DONE]" {
+                        break;
+                    }
+                    
+                    if let Ok(json) = serde_json::from_str::<Value>(data) {
+                        if let Some(choices) = json.get("choices").and_then(|c| c.as_array()) {
+                            if let Some(choice) = choices.first() {
+                                if let Some(delta) = choice.get("delta") {
+                                    if let Some(content) = delta.get("content").and_then(|c| c.as_str()) {
+                                        complete_content.push_str(content);
+                                        callback(content.to_string());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Create a synthetic response
+        use super::model::{Choice, Message};
+        let response = CompletionResponse {
+            id: "gemini_stream_response".to_string(),
+            object: "chat.completion".to_string(),
+            created: chrono::Utc::now().timestamp() as u64,
+            model: request.model.clone(),
+            choices: vec![Choice {
+                index: 0,
+                message: Message {
+                    role: "assistant".to_string(),
+                    content: Some(complete_content),
+                    tool_calls: None,
+                },
+                finish_reason: "stop".to_string(),
+            }],
+        };
+
+        Ok(response)
     }
 }

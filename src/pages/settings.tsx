@@ -14,6 +14,9 @@ function SettingsPage() {
     setSelectedProvider,
     providers,
     models,
+    baseUrl,
+    setBaseUrl,
+    selectedProviderConfig,
   } = useProvider();
 
   const { excludeFolders, addExcludeFolder, removeExcludeFolder } = useSettingsStore();
@@ -51,14 +54,39 @@ function SettingsPage() {
         <div className="flex flex-col space-y-1 max-w-sm">
           <label className="text-xs text-gray-500">
             API Key for {selectedProvider}
+            {selectedProvider === "ollama" && <span className="text-gray-400"> (Usually not required)</span>}
           </label>
           <Input
             type="password"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
-            placeholder="Enter API Key"
+            placeholder={selectedProvider === "ollama" ? "Leave empty for local Ollama" : "Enter API Key"}
             autoComplete="off"
           />
+          
+          <label className="text-xs text-gray-500 mt-4">
+            Base URL (Optional)
+          </label>
+          <Input
+            type="text"
+            value={baseUrl}
+            onChange={(e) => setBaseUrl(e.target.value)}
+            placeholder={selectedProviderConfig?.defaultBaseUrl || "Enter custom base URL"}
+            className="text-sm"
+          />
+          <div className="text-xs text-gray-400 mt-1">
+            {selectedProviderConfig?.defaultBaseUrl ? (
+              <>Default: {selectedProviderConfig.defaultBaseUrl}</>
+            ) : (
+              "Enter custom base URL for this provider"
+            )}
+          </div>
+          {selectedProvider === "ollama" && (
+            <div className="text-xs text-blue-600 mt-1">
+              💡 Make sure Ollama is running locally with: <code className="bg-gray-100 px-1 rounded">ollama serve</code>
+            </div>
+          )}
+          
           <label className="text-xs text-gray-500 mt-4">Available Models</label>
           <div className="flex flex-col gap-2 mt-1">
             {models.map((model) => (

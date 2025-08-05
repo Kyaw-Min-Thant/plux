@@ -5,6 +5,7 @@ export interface ProviderConfig {
   value: Provider;
   label: string;
   models: string[];
+  defaultBaseUrl?: string;
 }
 
 const PROVIDERS: ProviderConfig[] = [
@@ -20,11 +21,13 @@ const PROVIDERS: ProviderConfig[] = [
       "claude-3.5-sonnet",
       "claude-3.5-haiku",
     ],
+    defaultBaseUrl: "https://api.anthropic.com/v1/messages",
   },
   {
     value: "openai",
     label: "OpenAI",
     models: ["gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo"],
+    defaultBaseUrl: "https://api.openai.com/v1/chat/completions",
   },
   {
     value: "openrouter",
@@ -33,6 +36,7 @@ const PROVIDERS: ProviderConfig[] = [
       "anthropic/claude-4-sonnet",
       "meta-llama/llama-3-70b",
     ],
+    defaultBaseUrl: "https://openrouter.ai/api/v1/chat/completions",
   },
   {
     value: "google",
@@ -45,6 +49,20 @@ const PROVIDERS: ProviderConfig[] = [
       "gemini-2.0-pro",
       "gemini-2.0-flash-lite",
     ],
+    defaultBaseUrl: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+  },
+  {
+    value: "ollama",
+    label: "Ollama (Local)",
+    models: [
+      "llama3.2",
+      "llama3.1",
+      "llama3",
+      "codellama",
+      "mistral",
+      "phi3",
+    ],
+    defaultBaseUrl: "http://localhost:11434/v1/chat/completions",
   },
 ];
 
@@ -64,6 +82,25 @@ export function useProvider() {
       (localStorage.getItem("selectedProvider") as Provider) || "openai";
     return localStorage.getItem(`${provider}_API_KEY`) || "";
   });
+
+  const [selectedModel, setSelectedModelState] = useState<string>(() => {
+    return localStorage.getItem("selectedModel") || "";
+  });
+
+  const setSelectedModel = useCallback((model: string) => {
+    setSelectedModelState(model);
+    localStorage.setItem("selectedModel", model);
+  }, []);
+
+  const [baseUrl, setBaseUrlState] = useState<string>("");
+
+  const setBaseUrl = useCallback(
+    (url: string) => {
+      setBaseUrlState(url);
+      localStorage.setItem(`${selectedProvider}_BASE_URL`, url);
+    },
+    [selectedProvider],
+  );
 
   // Set provider and save to localStorage
   const setSelectedProvider = useCallback(async (provider: Provider) => {
@@ -88,15 +125,6 @@ export function useProvider() {
     }
   }, []);
 
-  const [selectedModel, setSelectedModelState] = useState<string>(() => {
-    return localStorage.getItem("selectedModel") || "";
-  });
-
-  const setSelectedModel = useCallback((model: string) => {
-    setSelectedModelState(model);
-    localStorage.setItem("selectedModel", model);
-  }, []);
-
   // Load API Key from localStorage (provider-specific)
   const loadApiKey = useCallback(async () => {
     const storedKey = localStorage.getItem(`${selectedProvider}_API_KEY`);
@@ -111,6 +139,13 @@ export function useProvider() {
   useEffect(() => {
     loadApiKey();
   }, [selectedProvider, loadApiKey]);
+
+  // When provider changes, update baseUrl state
+  useEffect(() => {
+    const providerConfig = providers.find((p) => p.value === selectedProvider);
+    const storedUrl = localStorage.getItem(`${selectedProvider}_BASE_URL`);
+    setBaseUrlState(storedUrl || providerConfig?.defaultBaseUrl || "");
+  }, [selectedProvider, providers]);
 
   // When provider changes, check if selected model is still valid
   useEffect(() => {
@@ -132,5 +167,8 @@ export function useProvider() {
     models,
     selectedModel,
     setSelectedModel,
+    baseUrl,
+    setBaseUrl,
+    selectedProviderConfig,
   };
 }

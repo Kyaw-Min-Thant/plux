@@ -25,7 +25,9 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
     if (contextFiles.length > 0) {
       const contextPaths = contextFiles.map(f => f.path).join('\n');
       const messageWithContext = contextPaths + (inputMessage ? '\n\n' + inputMessage : '');
+      console.log("send message with context:", messageWithContext)
       setInputMessage(messageWithContext);
+      console.log("setInputMessage")
       
       // Clear context files after sending
       setTimeout(() => {
@@ -33,6 +35,8 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
         setInputMessage(inputMessage); // Reset to original message
       }, 100);
     }
+    console.log("send msg end")
+
     onSend();
   };
 
