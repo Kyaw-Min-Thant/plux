@@ -6,6 +6,10 @@
 
 Built with **React**, **TypeScript**, **Tauri**, and the **Model Context Protocol (MCP)**, Plux lets you work with your favorite models like Claude, GPT, and Gemini — locally or in the cloud.
 
+## Screenshot
+
+![plux](images/plux.png)
+
 ## Features
 
 * 🔍 **Smart File Explorer**: Browse files and instantly preview them in-app
