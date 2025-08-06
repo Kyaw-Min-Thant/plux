@@ -1,7 +1,7 @@
 use crate::{
     mcp_client::{
         chat::ChatSession,
-        client::{ChatClient, GeminiClient, OpenAIClient, StreamingChatClient},
+        client::{common::{ChatClient, StreamingChatClient}, gemini::GeminiClient, openai::OpenAIClient},
     },
     GlobalToolSet,
 };

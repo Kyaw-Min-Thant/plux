@@ -4,7 +4,7 @@ use anyhow::Result;
 use serde_json;
 
 use super::{
-    client::ChatClient,
+    client::common::ChatClient,
     model::{CompletionRequest, Message, Tool, ToolFunction},
     tool::{ToolSet},
 };
