@@ -99,17 +99,11 @@ impl StreamingChatClient for OpenAIClient {
         request: CompletionRequest, 
         callback: Box<dyn Fn(String) + Send + Sync>
     ) -> Result<CompletionResponse> {
-        println!("🚀 OpenAI complete_stream called");
-        println!("📍 Base URL: {}", self.base_url);
-        println!("🔑 API key length: {}", self.api_key.len());
-        
         // Add stream parameter to request
         let mut request_value = serde_json::to_value(&request)?;
         if let Some(obj) = request_value.as_object_mut() {
             obj.insert("stream".to_string(), Value::Bool(true));
         }
-        
-        println!("📤 Request payload: {}", serde_json::to_string_pretty(&request_value).unwrap_or_default());
 
         let response = self
             .client
@@ -122,62 +116,115 @@ impl StreamingChatClient for OpenAIClient {
 
         if !response.status().is_success() {
             let error_text = response.text().await?;
-            println!("API error: {}", error_text);
             return Err(anyhow::anyhow!("API Error: {}", error_text));
         }
 
-        println!("✅ HTTP response status: {}", response.status());
-        println!("🌊 Starting to read stream...");
         let mut stream = response.bytes_stream();
         let mut complete_content = String::new();
         let mut buffer = String::new();
-        let mut chunk_count = 0;
 
         while let Some(chunk_result) = stream.next().await {
-            chunk_count += 1;
-            println!("📦 Received chunk #{}", chunk_count);
             let chunk = chunk_result?;
             let chunk_str = String::from_utf8_lossy(&chunk);
-            println!("📄 Raw chunk: {:?}", chunk_str);
+            println!("🔍 Raw chunk: {:?}", chunk_str);
             buffer.push_str(&chunk_str);
 
             // Process complete lines
             while let Some(line_end) = buffer.find('\n') {
                 let line = buffer[..line_end].trim().to_string();
                 buffer = buffer[line_end + 1..].to_string();
-                
-                println!("📝 Processing line: {:?}", line);
 
                 if line.starts_with("data: ") {
                     let data = &line[6..];
-                    println!("🔍 Data line: {}", data);
+                    println!("🔍 Processing data: {}", data);
                     if data == "[DONE]" {
                         println!("🏁 Stream finished");
                         break;
                     }
                     
                     if let Ok(json) = serde_json::from_str::<Value>(data) {
-                        println!("✅ Parsed JSON: {}", json);
+                        println!("✅ JSON parsed successfully");
                         if let Some(choices) = json.get("choices").and_then(|c| c.as_array()) {
+                            println!("🔍 Found {} choices", choices.len());
                             if let Some(choice) = choices.first() {
                                 if let Some(delta) = choice.get("delta") {
+                                    println!("🔍 Delta: {}", serde_json::to_string(delta).unwrap_or_default());
+                                    
+                                    // Try to extract content from regular content field
+                                    let mut content_found = false;
                                     if let Some(content) = delta.get("content").and_then(|c| c.as_str()) {
-                                        println!("💬 Streaming content: {:?}", content);
-                                        complete_content.push_str(content);
-                                        callback(content.to_string());
+                                        if !content.is_empty() {
+                                            println!("📝 Content extracted: '{}'", content);
+                                            complete_content.push_str(content);
+                                            callback(content.to_string());
+                                            content_found = true;
+                                        }
                                     }
+                                    
+                                    // If no regular content, try to extract from tool_calls (for Ollama)
+                                    if !content_found {
+                                        if let Some(tool_calls) = delta.get("tool_calls").and_then(|tc| tc.as_array()) {
+                                            for tool_call in tool_calls {
+                                                if let Some(function) = tool_call.get("function") {
+                                                    if let Some(arguments) = function.get("arguments").and_then(|a| a.as_str()) {
+                                                        println!("🔧 Tool call arguments: {}", arguments);
+                                                        // Try to parse the arguments as JSON and extract any text values
+                                                        if let Ok(args_json) = serde_json::from_str::<Value>(arguments) {
+                                                            let mut extracted_content = Vec::new();
+                                                            
+                                                            // Check common field names that might contain the actual content
+                                                            let possible_content_fields = ["message", "text", "content", "story", "response", "y", "x"];
+                                                            
+                                                            for field_name in &possible_content_fields {
+                                                                if let Some(value) = args_json.get(field_name).and_then(|v| v.as_str()) {
+                                                                    if !value.is_empty() {
+                                                                        extracted_content.push(format!("{}: {}", field_name, value));
+                                                                    }
+                                                                }
+                                                            }
+                                                            
+                                                            if !extracted_content.is_empty() {
+                                                                let content_str = extracted_content.join(", ");
+                                                                println!("📝 Content from tool_call: '{}'", content_str);
+                                                                complete_content.push_str(&content_str);
+                                                                callback(content_str);
+                                                                content_found = true;
+                                                            } else {
+                                                                // If no specific fields found, just show the raw arguments
+                                                                println!("📝 Raw tool arguments as content: '{}'", arguments);
+                                                                complete_content.push_str(arguments);
+                                                                callback(arguments.to_string());
+                                                                content_found = true;
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    
+                                    if !content_found {
+                                        println!("❌ No content found in delta (neither content nor tool_calls)");
+                                    }
+                                } else {
+                                    println!("❌ No delta found");
                                 }
+                            } else {
+                                println!("❌ No first choice");
                             }
+                        } else {
+                            println!("❌ No choices array");
                         }
                     } else {
-                        println!("❌ Failed to parse JSON: {}", data);
+                        println!("❌ JSON parse failed for: {}", data);
                     }
                 }
             }
         }
 
-        // Create a synthetic response
+        // Create a synthetic response  
         use super::model::{Choice, Message};
+        println!("🏁 Complete content: '{}'", complete_content);
         let response = CompletionResponse {
             id: "stream_response".to_string(),
             object: "chat.completion".to_string(),

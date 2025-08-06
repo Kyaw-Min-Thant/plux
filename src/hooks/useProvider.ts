@@ -56,6 +56,7 @@ const PROVIDERS: ProviderConfig[] = [
     label: "Ollama (Local)",
     models: [
       "llama3.2",
+      "hf.co/Menlo/Jan-nano-128k-gguf:Q4_K_S",
       "llama3.1",
       "llama3",
       "codellama",
