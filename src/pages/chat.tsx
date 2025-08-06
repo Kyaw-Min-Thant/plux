@@ -15,6 +15,13 @@ export default function ChatPage() {
   const [chatPaneWidth, setChatPaneWidth] = useState(400);
   const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const messageListRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (messageListRef.current) {
+      messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
+    }
+  }, [messages, isLoading]);
 
   const handleSend = () => {
     handleSendMessage();
@@ -121,7 +128,7 @@ export default function ChatPage() {
                 </div>
               </div>
             ) : (
-              <div className="flex-1 min-h-0">
+              <div ref={messageListRef} className="flex-1 min-h-0 overflow-y-auto">
                 <MessageList messages={messages} isLoading={isLoading} />
               </div>
             )}

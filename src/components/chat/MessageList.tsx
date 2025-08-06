@@ -1,17 +1,8 @@
-import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 export function MessageList({ messages, isLoading }: { messages: any[]; isLoading: boolean }) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages, isLoading]);
-
   return (
-    <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-4 p-4">
+    <div className="space-y-4 p-4">
       {messages.map((message, index) => (
         <div
           key={index}
