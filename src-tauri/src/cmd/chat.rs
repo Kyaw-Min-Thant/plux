@@ -194,6 +194,41 @@ pub async fn send_message_stream(
     };
     println!("🎯 Streaming method result: {:?}", result.is_ok());
 
+    // Process tool calls if streaming was successful
+    if let Ok(response) = &result {
+        if let Some(choice) = response.choices.first() {
+            println!("🔧 Checking for tool calls in streaming response");
+            
+            // Add the assistant's response message to the session
+            session.add_assistant_message(choice.message.clone());
+            
+            // Process tool calls if they exist
+            if choice.message.tool_calls.is_some() {
+                println!("🔧 Found tool calls in streaming response, processing...");
+                
+                let messages_before = session.get_messages().len();
+                
+                // Analyze and execute tool calls
+                session.analyze_tool_call(&choice.message).await;
+                
+                // Stream any new tool result messages back to the frontend
+                let messages_after = session.get_messages();
+                for message in &messages_after[messages_before..] {
+                    if let Some(content) = &message.content {
+                        println!("📤 Streaming tool result: {}", content);
+                        let tool_result_msg = StreamingMessage {
+                            content: format!("\n\n{}", content),
+                            finished: false,
+                        };
+                        let _ = app_handle.emit("chat_stream", &tool_result_msg);
+                    }
+                }
+            } else {
+                println!("🔧 No tool calls found in streaming response");
+            }
+        }
+    }
+
     // Send completion signal
     let completion_msg = StreamingMessage {
         content: String::new(),

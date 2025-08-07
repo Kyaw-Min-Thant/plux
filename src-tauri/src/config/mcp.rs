@@ -35,7 +35,11 @@ impl McpConfig {
                     return Ok(config);
                 }
             }
-            return Ok(Self::default());
+
+            // fallback to embedded default config
+            let embedded = include_str!("../../src/mcp.json");
+            let config = serde_json::from_str(embedded)?;
+            return Ok(config);
         }
 
         let content = tokio::fs::read_to_string(config_path).await?;

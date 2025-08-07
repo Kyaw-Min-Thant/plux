@@ -25,3 +25,6 @@ dist-ssr
 
 .env
 .claude/settings.local.json
+.gemini
+
+CLAUDE.md

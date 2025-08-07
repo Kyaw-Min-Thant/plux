@@ -5,13 +5,29 @@ export interface ChatMessage {
   image?: string;
 }
 
+export type ChatMode = "chat" | "agent";
+
+export interface Conversation {
+  id: string;
+  title: string;
+  messages: ChatMessage[];
+  mode: ChatMode;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface ChatRequest {
   message: string;
   provider: string;
   model: string;
 }
 
-export type Provider = "anthropic" | "openai" | "openrouter" | "google" | "ollama";
+export type Provider =
+  | "anthropic"
+  | "openai"
+  | "openrouter"
+  | "google"
+  | "ollama";
 
 export interface AppConfig {
   provider?: string;

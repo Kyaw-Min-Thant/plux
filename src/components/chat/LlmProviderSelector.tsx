@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 
-export default function McpProviderSelector() {
+export default function LlmProviderSelector() {
   const {
     providers,
     selectedProvider,
@@ -56,7 +56,7 @@ export default function McpProviderSelector() {
         >
           <span>
             {selectedProviderObj
-              ? `${selectedProviderObj.label} ${selectedModel}`
+              ? `${selectedModel}`
               : "Choose provider"}
           </span>
         </Button>

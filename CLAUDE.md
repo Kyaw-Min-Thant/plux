@@ -3,7 +3,8 @@
 ## Project Info
 - Package manager: bun
 - Framework: React + TypeScript + Tauri v2
-- UI: Tailwind CSS + Radix UI components
+- UI: shadcn UI components
+- UI language: English-only (interface text is displayed in English)
 
 ## Common Commands
 - `bun run build` - Build the project

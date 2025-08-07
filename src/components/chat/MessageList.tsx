@@ -1,6 +1,12 @@
 import { cn } from "@/lib/utils";
 
-export function MessageList({ messages, isLoading }: { messages: any[]; isLoading: boolean }) {
+export function MessageList({
+  messages,
+  isLoading,
+}: {
+  messages: any[];
+  isLoading: boolean;
+}) {
   return (
     <div className="space-y-4 p-4">
       {messages.map((message, index) => (
@@ -38,9 +44,7 @@ export function MessageList({ messages, isLoading }: { messages: any[]; isLoadin
           <div className="bg-muted px-4 py-2 rounded-lg">
             <div className="flex items-center space-x-2">
               <div className="animate-spin rounded-full h-4 w-4 border-2 border-border border-t-primary"></div>
-              <span className="text-sm text-muted-foreground">
-                Thinking...
-              </span>
+              <span className="text-sm text-muted-foreground">Thinking...</span>
             </div>
           </div>
         </div>

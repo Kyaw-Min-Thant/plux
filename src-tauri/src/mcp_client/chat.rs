@@ -50,6 +50,10 @@ impl ChatSession {
         self.messages.push(Message::user(content));
     }
 
+    pub fn add_assistant_message(&mut self, message: Message) {
+        self.messages.push(message);
+    }
+
     pub async fn analyze_tool_call(&mut self, response: &Message) {
         let mut tool_calls_func = Vec::new();
         if let Some(tool_calls) = response.tool_calls.as_ref() {

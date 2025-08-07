@@ -104,6 +104,7 @@ impl StreamingChatClient for OpenAIClient {
         let mut stream = response.bytes_stream();
         let mut complete_content = String::new();
         let mut buffer = String::new();
+        let mut accumulated_tool_calls = Vec::new();
 
         while let Some(chunk_result) = stream.next().await {
             let chunk = chunk_result?;
@@ -143,44 +144,39 @@ impl StreamingChatClient for OpenAIClient {
                                         }
                                     }
                                     
-                                    // If no regular content, try to extract from tool_calls (for Ollama)
+                                    // Handle tool_calls (accumulate them for later processing)
                                     if !content_found {
                                         if let Some(tool_calls) = delta.get("tool_calls").and_then(|tc| tc.as_array()) {
-                                            for tool_call in tool_calls {
-                                                if let Some(function) = tool_call.get("function") {
-                                                    if let Some(arguments) = function.get("arguments").and_then(|a| a.as_str()) {
-                                                        println!("🔧 Tool call arguments: {}", arguments);
-                                                        // Try to parse the arguments as JSON and extract any text values
-                                                        if let Ok(args_json) = serde_json::from_str::<Value>(arguments) {
-                                                            let mut extracted_content = Vec::new();
-                                                            
-                                                            // Check common field names that might contain the actual content
-                                                            let possible_content_fields = ["message", "text", "content", "story", "response", "y", "x"];
-                                                            
-                                                            for field_name in &possible_content_fields {
-                                                                if let Some(value) = args_json.get(field_name).and_then(|v| v.as_str()) {
-                                                                    if !value.is_empty() {
-                                                                        extracted_content.push(format!("{}: {}", field_name, value));
-                                                                    }
-                                                                }
-                                                            }
-                                                            
-                                                            if !extracted_content.is_empty() {
-                                                                let content_str = extracted_content.join(", ");
-                                                                println!("📝 Content from tool_call: \'{}\'", content_str);
-                                                                complete_content.push_str(&content_str);
-                                                                callback(content_str);
-                                                                content_found = true;
-                                                            } else {
-                                                                // If no specific fields found, just show the raw arguments
-                                                                println!("📝 Raw tool arguments as content: \'{}\'", arguments);
-                                                                complete_content.push_str(arguments);
-                                                                callback(arguments.to_string());
-                                                                content_found = true;
-                                                            }
+                                            for (index, tool_call) in tool_calls.iter().enumerate() {
+                                                // Ensure we have enough slots in accumulated_tool_calls
+                                                while accumulated_tool_calls.len() <= index {
+                                                    accumulated_tool_calls.push(serde_json::json!({
+                                                        "id": "",
+                                                        "type": "function",
+                                                        "function": {
+                                                            "name": "",
+                                                            "arguments": ""
                                                         }
+                                                    }));
+                                                }
+                                                
+                                                // Merge tool call data
+                                                if let Some(id) = tool_call.get("id").and_then(|v| v.as_str()) {
+                                                    accumulated_tool_calls[index]["id"] = Value::String(id.to_string());
+                                                }
+                                                if let Some(function) = tool_call.get("function") {
+                                                    if let Some(name) = function.get("name").and_then(|v| v.as_str()) {
+                                                        accumulated_tool_calls[index]["function"]["name"] = Value::String(name.to_string());
+                                                    }
+                                                    if let Some(arguments) = function.get("arguments").and_then(|v| v.as_str()) {
+                                                        let current_args = accumulated_tool_calls[index]["function"]["arguments"]
+                                                            .as_str().unwrap_or("");
+                                                        accumulated_tool_calls[index]["function"]["arguments"] = 
+                                                            Value::String(format!("{}{}", current_args, arguments));
                                                     }
                                                 }
+                                                
+                                                println!("🔧 Accumulating tool call [{}]: {:?}", index, accumulated_tool_calls[index]);
                                             }
                                         }
                                     }
@@ -205,8 +201,45 @@ impl StreamingChatClient for OpenAIClient {
         }
 
         // Create a synthetic response  
-        use crate::mcp_client::model::{Choice, Message};
+        use crate::mcp_client::model::{Choice, Message, ToolCall, ToolFunction};
         println!("🏁 Complete content: \'{}\'", complete_content);
+        
+        // Convert accumulated tool calls to proper format
+        let tool_calls = if !accumulated_tool_calls.is_empty() {
+            let converted_tool_calls: Vec<ToolCall> = accumulated_tool_calls
+                .into_iter()
+                .filter_map(|tc| {
+                    let id = tc.get("id")?.as_str().unwrap_or("");
+                    let type_str = tc.get("type")?.as_str().unwrap_or("function");
+                    let function = tc.get("function")?;
+                    let name = function.get("name")?.as_str().unwrap_or("");
+                    let arguments = function.get("arguments")?.as_str().unwrap_or("");
+                    
+                    if !name.is_empty() && !arguments.is_empty() {
+                        Some(ToolCall {
+                            id: id.to_string(),
+                            _type: type_str.to_string(),
+                            function: ToolFunction {
+                                name: name.to_string(),
+                                arguments: arguments.to_string(),
+                            },
+                        })
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            
+            if !converted_tool_calls.is_empty() {
+                println!("🔧 Generated {} tool calls", converted_tool_calls.len());
+                Some(converted_tool_calls)
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+        
         let response = CompletionResponse {
             id: "stream_response".to_string(),
             object: "chat.completion".to_string(),
@@ -217,7 +250,7 @@ impl StreamingChatClient for OpenAIClient {
                 message: Message {
                     role: "assistant".to_string(),
                     content: Some(complete_content),
-                    tool_calls: None,
+                    tool_calls,
                 },
                 finish_reason: "stop".to_string(),
             }],

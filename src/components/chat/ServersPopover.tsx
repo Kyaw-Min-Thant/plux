@@ -1,5 +1,9 @@
-// 
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+//
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Settings2 } from "lucide-react";
 import McpServers from "@/components/McpServers";

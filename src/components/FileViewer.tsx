@@ -2,8 +2,11 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Button } from "@/components/ui/button";
 import { X, Copy, Check, Sun, Moon, Send } from "lucide-react";
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { tomorrow, prism } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import {
+  tomorrow,
+  prism,
+} from "react-syntax-highlighter/dist/esm/styles/prism";
 import { languageMap } from "./languageMap";
 import { useChatStore } from "@/hooks/useChatStore";
 
@@ -24,13 +27,13 @@ export function FileViewer({ filePath, onClose }: FileViewerProps) {
 
   const getFileName = () => {
     if (!filePath) return "";
-    return filePath.split('/').pop() || filePath;
+    return filePath.split("/").pop() || filePath;
   };
 
   const getFileExtension = () => {
     if (!filePath) return "";
     const fileName = getFileName();
-    const lastDot = fileName.lastIndexOf('.');
+    const lastDot = fileName.lastIndexOf(".");
     return lastDot > -1 ? fileName.substring(lastDot + 1).toLowerCase() : "";
   };
 
@@ -44,26 +47,32 @@ export function FileViewer({ filePath, onClose }: FileViewerProps) {
     const loadFile = async () => {
       setLoading(true);
       setError(null);
-      
+
       try {
         const extension = getFileExtension();
         let fileContent: string;
-        
+
         switch (extension) {
-          case 'pdf':
-            fileContent = await invoke<string>("read_pdf_content", { filePath });
+          case "pdf":
+            fileContent = await invoke<string>("read_pdf_content", {
+              filePath,
+            });
             break;
-          case 'csv':
-            fileContent = await invoke<string>("read_csv_content", { filePath });
+          case "csv":
+            fileContent = await invoke<string>("read_csv_content", {
+              filePath,
+            });
             break;
-          case 'xlsx':
-            fileContent = await invoke<string>("read_xlsx_content", { filePath });
+          case "xlsx":
+            fileContent = await invoke<string>("read_xlsx_content", {
+              filePath,
+            });
             break;
           default:
             fileContent = await invoke<string>("read_file", { filePath });
             break;
         }
-        
+
         setContent(fileContent);
       } catch (err) {
         setError(err as string);
@@ -106,31 +115,31 @@ export function FileViewer({ filePath, onClose }: FileViewerProps) {
 
   const getLanguage = useMemo(() => {
     const extension = getFileExtension();
-    return languageMap[extension] || 'text';
+    return languageMap[extension] || "text";
   }, [filePath]);
 
   const isCodeFile = useMemo(() => {
-    return getLanguage !== 'text';
+    return getLanguage !== "text";
   }, [getLanguage]);
 
   const MAX_LINES = 500;
-  
+
   const displayContent = useMemo(() => {
-    if (!content) return '';
+    if (!content) return "";
     if (showFullContent) return content;
-    
-    const lines = content.split('\n');
+
+    const lines = content.split("\n");
     if (lines.length <= MAX_LINES) return content;
-    
-    return lines.slice(0, MAX_LINES).join('\n');
+
+    return lines.slice(0, MAX_LINES).join("\n");
   }, [content, showFullContent]);
 
   const isLargeFile = useMemo(() => {
-    return content.split('\n').length > MAX_LINES;
+    return content.split("\n").length > MAX_LINES;
   }, [content]);
 
   const handleToggleContent = useCallback(() => {
-    setShowFullContent(prev => !prev);
+    setShowFullContent((prev) => !prev);
   }, []);
 
   if (!filePath) return null;
@@ -155,9 +164,9 @@ export function FileViewer({ filePath, onClose }: FileViewerProps) {
               size="sm"
               onClick={handleToggleContent}
               className="p-1 h-auto text-xs"
-              title={`${showFullContent ? 'Show first 500 lines' : 'Show all lines'} (${content.split('\n').length} total)`}
+              title={`${showFullContent ? "Show first 500 lines" : "Show all lines"} (${content.split("\n").length} total)`}
             >
-              {showFullContent ? '500' : 'All'}
+              {showFullContent ? "500" : "All"}
             </Button>
           )}
           {isCodeFile && (
@@ -166,7 +175,9 @@ export function FileViewer({ filePath, onClose }: FileViewerProps) {
               size="sm"
               onClick={() => setIsDarkTheme(!isDarkTheme)}
               className="p-1 h-auto"
-              title={isDarkTheme ? "Switch to light theme" : "Switch to dark theme"}
+              title={
+                isDarkTheme ? "Switch to light theme" : "Switch to dark theme"
+              }
             >
               {isDarkTheme ? (
                 <Sun className="w-4 h-4" />
@@ -181,7 +192,11 @@ export function FileViewer({ filePath, onClose }: FileViewerProps) {
             onClick={handleSendToAI}
             disabled={!content || loading}
             className="p-1 h-auto"
-            title={selectedText ? "Send selected text to AI" : "Send file content to AI"}
+            title={
+              selectedText
+                ? "Send selected text to AI"
+                : "Send file content to AI"
+            }
           >
             <Send className="w-4 h-4" />
           </Button>
@@ -209,7 +224,7 @@ export function FileViewer({ filePath, onClose }: FileViewerProps) {
           </Button>
         </div>
       </div>
-      
+
       <div className="flex-1 overflow-y-auto">
         {loading ? (
           <div className="p-4 text-center text-gray-500">Loading file...</div>
@@ -222,9 +237,9 @@ export function FileViewer({ filePath, onClose }: FileViewerProps) {
               style={isDarkTheme ? tomorrow : prism}
               customStyle={{
                 margin: 0,
-                padding: '1rem',
-                background: 'transparent',
-                fontSize: '0.875rem',
+                padding: "1rem",
+                background: "transparent",
+                fontSize: "0.875rem",
               }}
               showLineNumbers={true}
               wrapLines={true}
@@ -235,7 +250,8 @@ export function FileViewer({ filePath, onClose }: FileViewerProps) {
             {isLargeFile && !showFullContent && (
               <div className="p-4 text-center border-t border-gray-200 bg-gray-50">
                 <p className="text-sm text-gray-600 mb-2">
-                  Showing first {MAX_LINES} lines of {content.split('\n').length} total lines
+                  Showing first {MAX_LINES} lines of{" "}
+                  {content.split("\n").length} total lines
                 </p>
                 <Button
                   variant="outline"
@@ -255,7 +271,8 @@ export function FileViewer({ filePath, onClose }: FileViewerProps) {
             {isLargeFile && !showFullContent && (
               <div className="p-4 text-center border-t border-gray-200 bg-gray-50">
                 <p className="text-sm text-gray-600 mb-2">
-                  Showing first {MAX_LINES} lines of {content.split('\n').length} total lines
+                  Showing first {MAX_LINES} lines of{" "}
+                  {content.split("\n").length} total lines
                 </p>
                 <Button
                   variant="outline"

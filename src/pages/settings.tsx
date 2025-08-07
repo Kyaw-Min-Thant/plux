@@ -19,11 +19,15 @@ function SettingsPage() {
     selectedProviderConfig,
   } = useProvider();
 
-  const { excludeFolders, addExcludeFolder, removeExcludeFolder } = useSettingsStore();
+  const { excludeFolders, addExcludeFolder, removeExcludeFolder } =
+    useSettingsStore();
   const [newExcludeFolder, setNewExcludeFolder] = useState("");
 
   const handleAddExcludeFolder = () => {
-    if (newExcludeFolder.trim() && !excludeFolders.includes(newExcludeFolder.trim())) {
+    if (
+      newExcludeFolder.trim() &&
+      !excludeFolders.includes(newExcludeFolder.trim())
+    ) {
       addExcludeFolder(newExcludeFolder.trim());
       setNewExcludeFolder("");
     }
@@ -54,16 +58,22 @@ function SettingsPage() {
         <div className="flex flex-col space-y-1 max-w-sm">
           <label className="text-xs text-gray-500">
             API Key for {selectedProvider}
-            {selectedProvider === "ollama" && <span className="text-gray-400"> (Usually not required)</span>}
+            {selectedProvider === "ollama" && (
+              <span className="text-gray-400"> (Usually not required)</span>
+            )}
           </label>
           <Input
             type="password"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
-            placeholder={selectedProvider === "ollama" ? "Leave empty for local Ollama" : "Enter API Key"}
+            placeholder={
+              selectedProvider === "ollama"
+                ? "Leave empty for local Ollama"
+                : "Enter API Key"
+            }
             autoComplete="off"
           />
-          
+
           <label className="text-xs text-gray-500 mt-4">
             Base URL (Optional)
           </label>
@@ -71,7 +81,9 @@ function SettingsPage() {
             type="text"
             value={baseUrl}
             onChange={(e) => setBaseUrl(e.target.value)}
-            placeholder={selectedProviderConfig?.defaultBaseUrl || "Enter custom base URL"}
+            placeholder={
+              selectedProviderConfig?.defaultBaseUrl || "Enter custom base URL"
+            }
             className="text-sm"
           />
           <div className="text-xs text-gray-400 mt-1">
@@ -83,10 +95,11 @@ function SettingsPage() {
           </div>
           {selectedProvider === "ollama" && (
             <div className="text-xs text-blue-600 mt-1">
-              💡 Make sure Ollama is running locally with: <code className="bg-gray-100 px-1 rounded">ollama serve</code>
+              💡 Make sure Ollama is running locally with:{" "}
+              <code className="bg-gray-100 px-1 rounded">ollama serve</code>
             </div>
           )}
-          
+
           <label className="text-xs text-gray-500 mt-4">Available Models</label>
           <div className="flex flex-col gap-2 mt-1">
             {models.map((model) => (
@@ -101,8 +114,10 @@ function SettingsPage() {
         </div>
 
         <div className="flex flex-col space-y-4 max-w-sm">
-          <label className="text-xs text-gray-500">Exclude Folders from File Tree</label>
-          
+          <label className="text-xs text-gray-500">
+            Exclude Folders from File Tree
+          </label>
+
           <div className="flex gap-2">
             <Input
               type="text"
@@ -115,7 +130,10 @@ function SettingsPage() {
             <Button
               size="sm"
               onClick={handleAddExcludeFolder}
-              disabled={!newExcludeFolder.trim() || excludeFolders.includes(newExcludeFolder.trim())}
+              disabled={
+                !newExcludeFolder.trim() ||
+                excludeFolders.includes(newExcludeFolder.trim())
+              }
             >
               <Plus className="w-4 h-4" />
             </Button>

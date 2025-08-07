@@ -9,17 +9,17 @@ interface SettingsStore {
 }
 
 const DEFAULT_EXCLUDE_FOLDERS = [
-  '.git',
-  'node_modules',
-  '.venv',
-  '__pycache__',
-  '.next',
-  '.nuxt',
-  'dist',
-  'build',
-  '.DS_Store',
-  'target',
-  '.cargo'
+  ".git",
+  "node_modules",
+  ".venv",
+  "__pycache__",
+  ".next",
+  ".nuxt",
+  "dist",
+  "build",
+  ".DS_Store",
+  "target",
+  ".cargo",
 ];
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -39,6 +39,6 @@ export const useSettingsStore = create<SettingsStore>()(
     }),
     {
       name: "settings-storage",
-    }
-  )
+    },
+  ),
 );

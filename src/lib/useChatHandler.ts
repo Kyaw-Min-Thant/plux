@@ -2,25 +2,41 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type { ChatMessage } from "@/types/chat";
 import { useChatStore } from "@/hooks/useChatStore";
+import { useConversationStore } from "@/hooks/useConversationStore";
 
 const getProviderDefaults = (provider: string) => {
   const defaults = {
-    openai: { baseUrl: "https://api.openai.com/v1/chat/completions", apiKey: "" },
-    google: { baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", apiKey: "" },
-    ollama: { baseUrl: "http://localhost:11434/v1/chat/completions", apiKey: "ollama" },
+    openai: {
+      baseUrl: "https://api.openai.com/v1/chat/completions",
+      apiKey: "",
+    },
+    google: {
+      baseUrl:
+        "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+      apiKey: "",
+    },
+    ollama: {
+      baseUrl: "http://localhost:11434/v1/chat/completions",
+      apiKey: "ollama",
+    },
     anthropic: { baseUrl: "https://api.anthropic.com/v1/messages", apiKey: "" },
-    openrouter: { baseUrl: "https://openrouter.ai/api/v1/chat/completions", apiKey: "" },
+    openrouter: {
+      baseUrl: "https://openrouter.ai/api/v1/chat/completions",
+      apiKey: "",
+    },
   };
-  return defaults[provider as keyof typeof defaults] || { baseUrl: "", apiKey: "" };
+  return (
+    defaults[provider as keyof typeof defaults] || { baseUrl: "", apiKey: "" }
+  );
 };
 
 export const handleSendMessage = async () => {
   console.log("🚀 handleSendMessage called");
-  
+
   try {
-    const { inputMessage, messages } = useChatStore.getState();
+    const { inputMessage } = useChatStore.getState();
     console.log("📝 Input message:", inputMessage);
-    
+
     if (!inputMessage.trim()) {
       console.log("❌ Empty message, returning");
       return;
@@ -32,10 +48,10 @@ export const handleSendMessage = async () => {
       timestamp: Date.now(),
     };
 
-    const updatedMessages = [...messages, userMessage];
+    // Add user message to conversation
+    useChatStore.getState().addMessage(userMessage);
 
     useChatStore.setState({
-      messages: updatedMessages,
       inputMessage: "",
       isLoading: true,
     });
@@ -44,57 +60,65 @@ export const handleSendMessage = async () => {
     const storedProvider = localStorage.getItem("selectedProvider") || "openai";
     const storedModel = localStorage.getItem("selectedModel") || "";
     const defaults = getProviderDefaults(storedProvider);
-    const storedApiKey = localStorage.getItem(`${storedProvider}_API_KEY`) || defaults.apiKey;
-    const storedBaseUrl = localStorage.getItem(`${storedProvider}_BASE_URL`) || defaults.baseUrl;
-    
+    const storedApiKey =
+      localStorage.getItem(`${storedProvider}_API_KEY`) || defaults.apiKey;
+    const storedBaseUrl =
+      localStorage.getItem(`${storedProvider}_BASE_URL`) || defaults.baseUrl;
+
+    // Get current conversation mode
+    const conversationStore = useConversationStore.getState();
+    const currentConversation = conversationStore.getCurrentConversation();
+    const isAgentMode = currentConversation?.mode === "agent";
+
     console.log("⚙️ Provider config:", {
       provider: storedProvider,
       model: storedModel,
       hasApiKey: !!storedApiKey,
-      baseUrl: storedBaseUrl
+      baseUrl: storedBaseUrl,
+      mode: currentConversation?.mode || "chat",
     });
 
     try {
       // Use streaming version for better UX
       console.log("🔄 Attempting streaming...");
-      await handleSendMessageStream(inputMessage);
+      await handleSendMessageStream(inputMessage, isAgentMode);
       console.log("✅ Streaming completed successfully");
     } catch (error) {
-    // Fallback to non-streaming if streaming fails
-    console.warn("Streaming failed, falling back to regular message:", error);
-    try {
-      const payload = {
-        request: {
-          message: inputMessage,
-          provider: storedProvider,
-          api_key: storedApiKey,
-          model: storedModel,
-          base_url: storedBaseUrl || null,
-        },
-      }
-      console.log("payload:", payload)
-      const response = await invoke<ChatMessage[]>("send_message", payload);
-      
-      const assistantMessages: ChatMessage[] = response.map((msg) => ({
-        ...msg,
-        timestamp: Date.now(),
-      }));
+      // Fallback to non-streaming if streaming fails
+      console.warn("Streaming failed, falling back to regular message:", error);
+      try {
+        const payload = {
+          request: {
+            message: inputMessage,
+            provider: storedProvider,
+            api_key: storedApiKey,
+            model: storedModel,
+            base_url: storedBaseUrl || null,
+          },
+        };
+        console.log("payload:", payload);
 
-      useChatStore.setState((state) => ({
-        messages: [...state.messages, ...assistantMessages],
-      }));
-    } catch (fallbackError) {
-      // Add error message to chat if send fails
-      const errorMessage: ChatMessage = {
-        role: "assistant",
-        content: `Error: Failed to send message. ${fallbackError}`,
-        timestamp: Date.now(),
-      };
-      useChatStore.setState((state) => ({
-        messages: [...state.messages, errorMessage],
-      }));
-      console.error("Failed to send message:", fallbackError);
-    }
+        // Use existing command - backend already supports tools
+        const response = await invoke<ChatMessage[]>("send_message", payload);
+
+        const assistantMessages: ChatMessage[] = response.map((msg) => ({
+          ...msg,
+          timestamp: Date.now(),
+        }));
+
+        // Add assistant messages to conversation
+        const chatStore = useChatStore.getState();
+        assistantMessages.forEach((msg) => chatStore.addMessage(msg));
+      } catch (fallbackError) {
+        // Add error message to chat if send fails
+        const errorMessage: ChatMessage = {
+          role: "assistant",
+          content: `Error: Failed to send message. ${fallbackError}`,
+          timestamp: Date.now(),
+        };
+        useChatStore.getState().addMessage(errorMessage);
+        console.error("Failed to send message:", fallbackError);
+      }
     } finally {
       console.log("🏁 handleSendMessage finally block");
       useChatStore.setState({ isLoading: false });
@@ -105,14 +129,27 @@ export const handleSendMessage = async () => {
   }
 };
 
-export const handleSendMessageStream = async (messageContent?: string) => {
+export const handleSendMessageStream = async (
+  messageContent?: string,
+  isAgentMode: boolean = false,
+) => {
   const { inputMessage } = useChatStore.getState();
-  const actualMessage = messageContent || inputMessage;
-  
+  let actualMessage = messageContent || inputMessage;
+
+  // Modify message based on mode
+  if (!isAgentMode) {
+    // For chat mode, add prefix to indicate simple conversation preference
+    actualMessage = `[Simple conversation mode] ${actualMessage}`;
+  } else {
+    // For agent mode, add prefix to encourage tool usage
+    actualMessage = `[Agent mode - use tools when helpful] ${actualMessage}`;
+  }
+
   console.log("🔄 handleSendMessageStream called");
   console.log("📨 Message content:", actualMessage);
-  console.log("📨 Store inputMessage:", inputMessage);
-  
+  console.log("📨 Original message:", messageContent || inputMessage);
+  console.log("🤖 Agent mode:", isAgentMode);
+
   if (!actualMessage.trim()) {
     console.log("❌ Empty message in stream, returning");
     return;
@@ -122,8 +159,10 @@ export const handleSendMessageStream = async (messageContent?: string) => {
   const storedProvider = localStorage.getItem("selectedProvider") || "openai";
   const storedModel = localStorage.getItem("selectedModel") || "";
   const defaults = getProviderDefaults(storedProvider);
-  const storedApiKey = localStorage.getItem(`${storedProvider}_API_KEY`) || defaults.apiKey;
-  const storedBaseUrl = localStorage.getItem(`${storedProvider}_BASE_URL`) || defaults.baseUrl;
+  const storedApiKey =
+    localStorage.getItem(`${storedProvider}_API_KEY`) || defaults.apiKey;
+  const storedBaseUrl =
+    localStorage.getItem(`${storedProvider}_BASE_URL`) || defaults.baseUrl;
 
   // Create streaming assistant message
   const streamingMessage: ChatMessage = {
@@ -132,46 +171,40 @@ export const handleSendMessageStream = async (messageContent?: string) => {
     timestamp: Date.now(),
   };
 
-  useChatStore.setState((state) => ({
-    messages: [...state.messages, streamingMessage],
-  }));
+  useChatStore.getState().addMessage(streamingMessage);
 
   // Listen for streaming events
   console.log("Setting up chat_stream listener...");
-  const unlisten = await listen<{content: string, finished: boolean}>("chat_stream", (event) => {
-    console.log("Received chat_stream event:", event.payload);
-    const { content, finished } = event.payload;
-    
-    if (finished) {
-      console.log("Stream finished");
-      // Stream is complete
-      useChatStore.setState({ isLoading: false });
-      
-      // If content starts with "Error:", it's an error message
-      if (content.startsWith("Error:")) {
-        console.log("Received error:", content);
-        useChatStore.setState((state) => {
-          const updatedMessages = [...state.messages];
-          const lastMessage = updatedMessages[updatedMessages.length - 1];
-          if (lastMessage && lastMessage.role === "assistant") {
-            lastMessage.content = content; // Replace with error message
-          }
-          return { messages: updatedMessages };
-        });
-      }
-    } else {
-      console.log("Received streaming content:", content);
-      // Update the last message with new content
-      useChatStore.setState((state) => {
-        const updatedMessages = [...state.messages];
-        const lastMessage = updatedMessages[updatedMessages.length - 1];
-        if (lastMessage && lastMessage.role === "assistant") {
-          lastMessage.content += content;
+  const unlisten = await listen<{ content: string; finished: boolean }>(
+    "chat_stream",
+    (event) => {
+      console.log("Received chat_stream event:", event.payload);
+      const { content, finished } = event.payload;
+
+      if (finished) {
+        console.log("Stream finished");
+        // Stream is complete
+        useChatStore.setState({ isLoading: false });
+
+        // If content starts with "Error:", it's an error message
+        if (content.startsWith("Error:")) {
+          console.log("Received error:", content);
+          useChatStore.getState().updateLastMessage(content);
         }
-        return { messages: updatedMessages };
-      });
-    }
-  });
+      } else {
+        console.log("Received streaming content:", content);
+        // Update the last message with new content
+        const conversationStore = useConversationStore.getState();
+        const currentMessages = conversationStore.getCurrentMessages();
+        const lastMessage = currentMessages[currentMessages.length - 1];
+        if (lastMessage && lastMessage.role === "assistant") {
+          useChatStore
+            .getState()
+            .updateLastMessage(lastMessage.content + content);
+        }
+      }
+    },
+  );
 
   try {
     const payload = {
@@ -182,12 +215,16 @@ export const handleSendMessageStream = async (messageContent?: string) => {
         model: storedModel,
         base_url: storedBaseUrl || null,
       },
-    }
-    console.log("📤 Stream payload:", payload)
-    console.log("🚀 Calling send_message_stream...");
-    // Start streaming
+    };
+    console.log("📤 Stream payload:", payload);
+
+    console.log(
+      `🚀 Calling send_message_stream (mode: ${isAgentMode ? "agent" : "chat"})...`,
+    );
+
+    // Start streaming - backend already supports tools automatically
     await invoke("send_message_stream", payload);
-    console.log("✅ send_message_stream call completed");
+    console.log(`✅ send_message_stream call completed`);
   } catch (error) {
     console.error("Streaming failed:", error);
     throw error;

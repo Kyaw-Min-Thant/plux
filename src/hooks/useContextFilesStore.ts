@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 interface ContextFile {
   path: string;
@@ -19,7 +19,7 @@ export const useContextFilesStore = create<ContextFilesState>()(
   persist(
     (set, get) => ({
       contextFiles: [],
-      
+
       addFile: (path: string) => {
         const fileName = get().getFileName(path);
         const newFile: ContextFile = {
@@ -27,30 +27,30 @@ export const useContextFilesStore = create<ContextFilesState>()(
           name: fileName,
           addedAt: Date.now(),
         };
-        
+
         set((state) => ({
-          contextFiles: state.contextFiles.some(f => f.path === path)
+          contextFiles: state.contextFiles.some((f) => f.path === path)
             ? state.contextFiles
             : [...state.contextFiles, newFile],
         }));
       },
-      
+
       removeFile: (path: string) => {
         set((state) => ({
-          contextFiles: state.contextFiles.filter(f => f.path !== path),
+          contextFiles: state.contextFiles.filter((f) => f.path !== path),
         }));
       },
-      
+
       clearFiles: () => {
         set({ contextFiles: [] });
       },
-      
+
       getFileName: (path: string) => {
-        return path.split('/').pop() || path;
+        return path.split("/").pop() || path;
       },
     }),
     {
-      name: 'context-files-storage',
-    }
-  )
+      name: "context-files-storage",
+    },
+  ),
 );

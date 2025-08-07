@@ -86,7 +86,7 @@ export const DxtManifestSchema = z.object({
   long_description: z.string().optional(),
   author: DxtManifestAuthorSchema,
   repository: DxtManifestRepositorySchema.optional(),
-  homepage: z.string().url().optional(),
+  homepage: z.string().optional(),
   documentation: z.string().url().optional(),
   support: z.string().url().optional(),
   icon: z.string().optional(),

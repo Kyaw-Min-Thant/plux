@@ -6,12 +6,16 @@ pub async fn read_dxt_setting(user: String, repo: String) -> Result<serde_json::
         tokio::fs::create_dir_all(&settings_dir).await?;
         let settings_path = settings_dir.join(format!("{}.{}.json", &user, &repo));
 
-        if !settings_path.exists() {
-            return Err(anyhow::anyhow!("Manifest not found for {}.{}", user, repo));
-        }
-
-        let content = tokio::fs::read_to_string(&settings_path).await?;
-        let json: serde_json::Value = serde_json::from_str(&content)?;
+        let json = if !settings_path.exists() {
+            // Return default settings if file doesn't exist
+            serde_json::json!({
+                "isEnabled": false,
+                "userConfig": {}
+            })
+        } else {
+            let content = tokio::fs::read_to_string(&settings_path).await?;
+            serde_json::from_str(&content)?
+        };
         Ok(json)
     }
     .await

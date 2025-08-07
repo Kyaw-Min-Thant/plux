@@ -63,11 +63,11 @@ impl Tool {
     // Create OpenAI format tool (for OpenAI client)
     pub fn openai_format(name: String, description: String, parameters: serde_json::Value) -> Self {
         Self {
-            r#type: None,
-            function: None,
-            name: Some(name),
-            description: Some(description),
-            parameters: Some(parameters),
+            r#type: Some("function".to_string()),
+            function: Some(ToolDefinition { name, description, parameters }),
+            name: None,
+            description: None,
+            parameters: None,
         }
     }
 
