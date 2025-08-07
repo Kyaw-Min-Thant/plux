@@ -1,6 +1,8 @@
 # plux
 
-🎯 **One-click + your files to AI.**
+🎯 **File tree + plus button, One-click + your files to AI. AI finder/explorer**
+
+[![Stars](https://img.shields.io/github/stars/milisp/plux?style=social)](https://github.com/milisp/plux/stargazers)
 
 **Plux** is a powerful desktop app that turns your local files — PDFs, CSVs, source code, anything — into real-time AI context with just one click. Ask questions, get summaries, understand your projects faster than ever.
 
@@ -42,6 +44,53 @@ development or CONTRIBUTING
 2. **Browse Files**: Use the file tree on the left to explore your project
 3. **Add Context**: Click the + button next to any file or folder to add it to your chat context
 4. **Chat with AI**: Ask questions about your project - the AI will have access to the files you've added
+
+### require filesystem mcp server
+
+download [rust-mcp-filesystem](https://github.com/rust-mcp-stack/rust-mcp-filesystem)
+
+Add `rust-mcp-filesystem` to `~/.config/plux/mcp.json`
+
+```json
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "rust-mcp-filesystem",
+      "args": ["~/"]
+    }
+  }
+}
+```
+
+Or [filesystem](https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem)
+
+```json
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/Users/username/Desktop",
+        "/path/to/other/allowed/dir"
+      ]
+    }
+  }
+}```
+
+## Roadmap
+
+Here's what's coming next in Plux:
+
+- [x] GPT / OpenRouter integration via MCP
+- [ ] Claude support via MCP
+- [x] Gemini model integration
+- [ ] Context memory for conversations
+- [ ] Plugin system for custom file types
+- [ ] Model comparison view
+- [ ] Dynamic MCP server start/stop from UI
+- [ ] Auto-download and path setup for rust-mcp-filesystem
 
 ## Get Involved
 
