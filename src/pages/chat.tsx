@@ -7,12 +7,15 @@ import {
   MessageList,
   ConversationList,
 } from "@/components/chat";
+import { NoteList, NoteEditor } from "@/components/notes";
 import { FileTree } from "@/components/FileTree";
 import { FileViewer } from "@/components/FileViewer";
 import { useFolderStore } from "@/hooks/useFolderStore";
 import { useLayoutStore } from "@/hooks/useLayoutStore";
-import { History, Plus } from "lucide-react";
+import { useNoteStore } from "@/hooks/useNoteStore";
+import { History, Plus, FileText, MessageCircle } from "lucide-react";
 import { useConversationStore } from "@/hooks/useConversationStore";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function ChatPage() {
   const { createConversation } = useConversationStore();
@@ -25,7 +28,8 @@ export default function ChatPage() {
   const [chatPaneWidth, setChatPaneWidth] = useState(600); // Wider to accommodate conversation list
   const [conversationListWidth, setConversationListWidth] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
-  const [isDraggingConvList, setIsDraggingConvList] = useState(false);
+  const [activeTab, setActiveTab] = useState<"conversation" | "notes">("conversation");
+  const [noteListWidth, setNoteListWidth] = useState<number>(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const messageListRef = useRef<HTMLDivElement>(null);
 
@@ -47,14 +51,23 @@ export default function ChatPage() {
     setSelectedFile(null);
   };
 
+  const { createNoteFromContent, setCurrentNote } = useNoteStore();
+
+  const addToNote = (text: string, source?: string) => {
+    const newNote = createNoteFromContent(text, source);
+    setCurrentNote(newNote.id);
+    setActiveTab("notes"); // Switch to notes tab after creating note
+  };
+
+  const handleEditMessage = (index: number, newContent: string) => {
+    // TODO: Implement message editing functionality
+    // This would require updating the chat store to support editing messages
+    console.log("Edit message", index, newContent);
+  };
+
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     setIsDragging(true);
-  }, []);
-
-  const handleConvListMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsDraggingConvList(true);
   }, []);
 
   const handleMouseMove = useCallback(
@@ -69,29 +82,16 @@ export default function ChatPage() {
 
         setChatPaneWidth(Math.min(Math.max(newWidth, minWidth), maxWidth));
       }
-
-      if (isDraggingConvList) {
-        const containerRect = containerRef.current.getBoundingClientRect();
-        const chatPaneLeft = containerRect.right - chatPaneWidth;
-        const newWidth = e.clientX - chatPaneLeft;
-        const minWidth = 200;
-        const maxWidth = chatPaneWidth * 0.6;
-
-        setConversationListWidth(
-          Math.min(Math.max(newWidth, minWidth), maxWidth),
-        );
-      }
     },
-    [isDragging, isDraggingConvList, chatPaneWidth],
+    [isDragging],
   );
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
-    setIsDraggingConvList(false);
   }, []);
 
   useEffect(() => {
-    if (isDragging || isDraggingConvList) {
+    if (isDragging) {
       document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("mouseup", handleMouseUp);
       return () => {
@@ -99,7 +99,7 @@ export default function ChatPage() {
         document.removeEventListener("mouseup", handleMouseUp);
       };
     }
-  }, [isDragging, isDraggingConvList, handleMouseMove, handleMouseUp]);
+  }, [isDragging, handleMouseMove, handleMouseUp]);
 
   return (
     <div className="relative h-full" ref={containerRef}>
@@ -115,7 +115,7 @@ export default function ChatPage() {
         )}
         <div className="flex-1">
           {selectedFile ? (
-            <FileViewer filePath={selectedFile} onClose={handleCloseFile} />
+            <FileViewer filePath={selectedFile} onClose={handleCloseFile} addToNotepad={addToNote} />
           ) : (
             <div className="flex-1 flex items-center justify-center p-8">
               <div className="text-center space-y-4 max-w-md">
@@ -132,65 +132,121 @@ export default function ChatPage() {
         </div>
       </div>
 
-      {/* Chat pane overlay - Cursor IDE style with conversation list */}
+      {/* Chat pane overlay - Simplified clean design */}
       {showChatPane && (
         <div
-          className="absolute top-0 right-0 h-full bg-white border-l border-gray-200 shadow-lg flex overflow-hidden"
+          className="absolute top-0 right-0 h-full bg-white border-l border-gray-200 shadow-lg flex flex-col overflow-hidden"
           style={{ width: `${chatPaneWidth}px` }}
         >
           {/* Main chat pane resize handle */}
           <div
-            className="w-1 bg-gray-200 hover:bg-gray-400 cursor-col-resize flex-shrink-0 transition-colors"
+            className="absolute left-0 top-0 w-1 h-full bg-gray-200 hover:bg-gray-400 cursor-col-resize transition-colors z-10"
             onMouseDown={handleMouseDown}
           />
 
-          {/* Conversation list */}
-          <div
-            className="flex-shrink-0 border-r border-gray-200"
-            style={{ width: `${conversationListWidth}px` }}
-          >
-            <ConversationList />
-          </div>
-
-          {/* Conversation list resize handle */}
-          <div
-            className="w-1 bg-gray-200 hover:bg-gray-400 cursor-col-resize flex-shrink-0 transition-colors"
-            onMouseDown={handleConvListMouseDown}
-          />
-
-          {/* Chat content area */}
-          <div className="flex flex-col flex-1 min-h-0">
-            {/* Chat pane header */}
-            <div className="flex justify-between w-max-full p-1 border-b border-gray-200">
-              <span>New chat</span>
-              <span className="flex">
-                <button onClick={() => createConversation(undefined, "agent")}>
-                  <Plus />
-                </button>
-                <button
-                  onClick={() =>
-                    setConversationListWidth((prev) => (prev === 0 ? 280 : 0))
-                  }
-                >
-                  <History />
-                </button>
-              </span>
-            </div>
-
-            {messages.length === 0 && !isLoading ? (
-              <WelcomeMessage />
-            ) : (
-              <div
-                ref={messageListRef}
-                className="flex-1 min-h-0 overflow-y-auto"
-              >
-                <MessageList messages={messages} isLoading={isLoading} />
+          {/* Tabs */}
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "conversation" | "notes")} className="flex flex-col flex-1 min-h-0">
+            {/* Tab header - simplified */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50/50">
+              <TabsList className="grid grid-cols-2 w-48">
+                <TabsTrigger value="conversation" className="text-sm">
+                  <MessageCircle size={14} className="mr-1.5" />
+                  Chat
+                </TabsTrigger>
+                <TabsTrigger value="notes" className="text-sm">
+                  <FileText size={14} className="mr-1.5" />
+                  Notes
+                </TabsTrigger>
+              </TabsList>
+              
+              <div className="flex items-center gap-1">
+                {activeTab === "conversation" && (
+                  <>
+                    <button 
+                      onClick={() => createConversation(undefined, "agent")}
+                      className="p-1.5 hover:bg-gray-200 rounded-md transition-colors"
+                      title="New conversation"
+                    >
+                      <Plus size={14} />
+                    </button>
+                    <button
+                      onClick={() => setConversationListWidth((prev) => (prev === 0 ? 280 : 0))}
+                      className="p-1.5 hover:bg-gray-200 rounded-md transition-colors"
+                      title="Toggle conversation history"
+                    >
+                      <History size={14} />
+                    </button>
+                  </>
+                )}
+                {activeTab === "notes" && (
+                  <button
+                    onClick={() => setNoteListWidth((prev) => (prev === 0 ? 280 : 0))}
+                    className="p-1.5 hover:bg-gray-200 rounded-md transition-colors"
+                    title="Toggle note list"
+                  >
+                    <FileText size={14} />
+                  </button>
+                )}
               </div>
-            )}
-            <div className="flex-shrink-0">
-              <ChatInput onSend={handleSend} isLoading={isLoading} />
             </div>
-          </div>
+
+            {/* Tab content */}
+            <TabsContent value="conversation" className="flex flex-1 min-h-0 mt-0">
+              <div className="flex flex-1 min-h-0">
+                {/* Conversation history sidebar */}
+                {conversationListWidth > 0 && (
+                  <>
+                    <div
+                      className="flex-shrink-0 border-r border-gray-200 bg-gray-50"
+                      style={{ width: `${conversationListWidth}px` }}
+                    >
+                      <ConversationList />
+                    </div>
+                    <div className="w-px bg-gray-200"></div>
+                  </>
+                )}
+
+                {/* Chat area */}
+                <div className="flex flex-col flex-1 min-h-0 bg-white">
+                  {messages.length === 0 && !isLoading ? (
+                    <WelcomeMessage />
+                  ) : (
+                    <div
+                      ref={messageListRef}
+                      className="flex-1 min-h-0 overflow-y-auto"
+                    >
+                      <MessageList messages={messages} isLoading={isLoading} addToNotepad={addToNote} onEditMessage={handleEditMessage} />
+                    </div>
+                  )}
+                  <div className="flex-shrink-0 border-t border-gray-100">
+                    <ChatInput onSend={handleSend} isLoading={isLoading} />
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="notes" className="flex flex-1 min-h-0 mt-0">
+              <div className="flex flex-1 min-h-0">
+                {/* Note List sidebar */}
+                {noteListWidth > 0 && (
+                  <>
+                    <div
+                      className="flex-shrink-0 border-r border-gray-200"
+                      style={{ width: `${noteListWidth}px` }}
+                    >
+                      <NoteList />
+                    </div>
+                    <div className="w-px bg-gray-200"></div>
+                  </>
+                )}
+
+                {/* Note Editor */}
+                <div className="flex-1 min-w-0 bg-white">
+                  <NoteEditor />
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       )}
     </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Button } from "@/components/ui/button";
-import { X, Copy, Check, Sun, Moon, Send } from "lucide-react";
+import { X, Copy, Check, Sun, Moon, Send, FileText } from "lucide-react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import {
   tomorrow,
@@ -13,9 +13,10 @@ import { useChatStore } from "@/hooks/useChatStore";
 interface FileViewerProps {
   filePath: string | null;
   onClose: () => void;
+  addToNotepad?: (text: string, source?: string) => void;
 }
 
-export function FileViewer({ filePath, onClose }: FileViewerProps) {
+export function FileViewer({ filePath, onClose, addToNotepad }: FileViewerProps) {
   const [content, setContent] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -102,6 +103,14 @@ export function FileViewer({ filePath, onClose }: FileViewerProps) {
       const fileName = getFileName();
       addFileContent(fileName, content, selectedText || undefined);
       onClose(); // Close the file viewer and navigate to chat
+    }
+  };
+
+  const handleAddToNote = () => {
+    if (addToNotepad && content) {
+      const fileName = getFileName();
+      const textToAdd = selectedText || content;
+      addToNotepad(textToAdd, `File: ${fileName}`);
     }
   };
 
@@ -200,6 +209,22 @@ export function FileViewer({ filePath, onClose }: FileViewerProps) {
           >
             <Send className="w-4 h-4" />
           </Button>
+          {addToNotepad && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleAddToNote}
+              disabled={!content || loading}
+              className="p-1 h-auto"
+              title={
+                selectedText
+                  ? "Add selected text to note"
+                  : "Add file content to note"
+              }
+            >
+              <FileText className="w-4 h-4" />
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="sm"
