@@ -8,6 +8,7 @@ import {
   Music,
   Settings,
   Usb,
+  Pin,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useFolderStore } from "@/hooks/useFolderStore";
@@ -28,7 +29,7 @@ const routeLinks = [
 ];
 
 export function AppHeader() {
-  const { setCurrentFolder } = useFolderStore();
+  const { currentFolder, setCurrentFolder } = useFolderStore();
   const navigate = useNavigate();
 
   const handleFolderClick = (folder: string) => {
@@ -43,6 +44,16 @@ export function AppHeader() {
         <Link to="/welcome">
           <PartyPopper />
         </Link>
+
+        {/* Current folder pin button */}
+        {currentFolder && (
+          <button
+            className="hover:bg-gray-100 p-1 rounded flex items-center gap-1"
+            onClick={() => handleFolderClick(currentFolder)}
+          >
+            <Pin className="w-4 h-4" />
+          </button>
+        )}
         
         {/* Folder buttons */}
         {folderButtons.map(({ folder, icon }) => (
