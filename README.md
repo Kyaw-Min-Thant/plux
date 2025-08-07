@@ -72,12 +72,12 @@ Or [filesystem](https://github.com/modelcontextprotocol/servers/tree/main/src/fi
       "args": [
         "-y",
         "@modelcontextprotocol/server-filesystem",
-        "/Users/username/Desktop",
-        "/path/to/other/allowed/dir"
+        "~/"
       ]
     }
   }
-}```
+}
+```
 
 ## Roadmap
 
