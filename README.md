@@ -6,7 +6,14 @@
 
 **Plux** is a powerful desktop app that turns your local files — PDFs, CSVs, source code, anything — into real-time AI context with just one click. Ask questions, get summaries, understand your projects faster than ever.
 
-Built with **React**, **TypeScript**, **Tauri**, and the **Model Context Protocol (MCP)**, Plux lets you work with your favorite models like Claude, GPT, and Gemini — locally or in the cloud.
+Built with **React**, **TypeScript**, **Tauri**, and the **Model Context Protocol (MCP)**, Plux lets you work with your favorite models like Claude, GPT, and Gemini — locally or in the cloud. work with openrouter, ollama.
+
+more [ideas](./docs)
+
+- [blog](./docs/BLOG.md)
+- [blog2](./docs/BLOG2.md)
+- [notes](./docs/NOTES.md)
+- [TODO](./docs/TODO.md)
 
 ## Screenshot
 
@@ -21,6 +28,7 @@ Built with **React**, **TypeScript**, **Tauri**, and the **Model Context Protoco
 * 🌐 **MCP Integration**: Connect with pluggable model servers using Model Context Protocol
 * 🎨 **Syntax-Highlighted Viewer**: Code files beautifully rendered for reading and AI use
 * ⚡️ **Fast, Local, Private**: Powered by Tauri, your data stays on your machine
+* 📝 **Built-in Notepad**: Save AI insights, selected messages, or your own thoughts — directly in the app
 
 ## Example
 
