@@ -1,13 +1,7 @@
 import { cn } from "@/lib/utils";
-import { FileText, Edit2, Copy, MoreHorizontal, StickyNote } from "lucide-react";
+import { FileText, Edit2, Copy, StickyNote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from "@/components/ui/dropdown-menu";
 
 export function MessageList({
   messages,
@@ -159,41 +153,46 @@ export function MessageList({
                         </span>
                       )}
                     </div>
+                    
+                    {/* Action buttons - shown below message content */}
+                    <div className="flex gap-1">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-6 w-6 p-0 opacity-50 hover:opacity-100" 
+                        onClick={() => copyToClipboard(message.content)}
+                        title="Copy"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                      {addToNotepad && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-6 w-6 p-0 opacity-50 hover:opacity-100" 
+                          onClick={() => addToNotepad(message.content, message.role === "user" ? "User" : "Assistant")}
+                          title="Add to Notes"
+                        >
+                          <FileText className="h-3 w-3" />
+                        </Button>
+                      )}
+                      {message.role === "user" && onEditMessage && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-6 w-6 p-0 opacity-50 hover:opacity-100" 
+                          onClick={() => handleStartEdit(index, message.content)}
+                          title="Edit"
+                        >
+                          <Edit2 className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </>
               )}
             </div>
 
-            {/* Action buttons */}
-            {editingIndex !== index && (
-              <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                      <MoreHorizontal className="h-3 w-3" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => copyToClipboard(message.content)}>
-                      <Copy className="h-3 w-3 mr-2" />
-                      Copy
-                    </DropdownMenuItem>
-                    {addToNotepad && (
-                      <DropdownMenuItem onClick={() => addToNotepad(message.content, message.role === "user" ? "User" : "Assistant")}>
-                        <FileText className="h-3 w-3 mr-2" />
-                        Add to Notes
-                      </DropdownMenuItem>
-                    )}
-                    {message.role === "user" && onEditMessage && (
-                      <DropdownMenuItem onClick={() => handleStartEdit(index, message.content)}>
-                        <Edit2 className="h-3 w-3 mr-2" />
-                        Edit
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            )}
           </div>
         </div>
       ))}

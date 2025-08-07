@@ -2,7 +2,7 @@ import {
   Download,
   FileText,
   Film,
-  History,
+  PartyPopper,
   Home,
   Image,
   Music,
@@ -22,7 +22,7 @@ const folderButtons = [
 ];
 
 const routeLinks = [
-  { to: "/welcome", icon: <History /> },
+  { to: "/welcome", icon: <PartyPopper /> },
   { to: "/dxt", icon: <Usb /> },
   { to: "/settings", icon: <Settings /> },
 ];
@@ -41,7 +41,7 @@ export function AppHeader() {
       <span className="flex gap-2">
         {/* Welcome button */}
         <Link to="/welcome">
-          <History />
+          <PartyPopper />
         </Link>
         
         {/* Folder buttons */}

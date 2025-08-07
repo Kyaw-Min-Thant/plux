@@ -24,13 +24,15 @@ Built with **React**, **TypeScript**, **Tauri**, and the **Model Context Protoco
 
 * Click on `data.csv` → AI shows a preview and lets you ask: “What's the average sales per region?”
 * Open `main.rs` → Ask: “What does this function do?”
-* Drop in `report.pdf` → Ask: “Summarize the key findings for me.”
+* Click on `report.pdf` → Ask: “Summarize the key findings for me.”
 
 You don't copy-paste. You don't switch tabs. You just click + and ask.
 
 ## Getting Started
 
 ### Prerequisites and installation
+
+development or CONTRIBUTING
 
 [development](CONTRIBUTING.md)
 

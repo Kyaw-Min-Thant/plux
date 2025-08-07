@@ -120,6 +120,12 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
               } else {
                 setInputMessage(e.target.value);
               }
+              
+              // Auto-resize textarea only when not expanded
+              if (!isExpanded) {
+                e.target.style.height = "auto";
+                e.target.style.height = Math.min(e.target.scrollHeight, 200) + "px";
+              }
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
@@ -128,7 +134,11 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
               }
             }}
             placeholder={getPlaceholder()}
-            className="w-full resize-none pr-24"
+            className={`w-full resize-none pr-24 pb-12 overflow-y-auto ${
+              isExpanded 
+                ? "h-[200px]" 
+                : "min-h-[80px] max-h-[200px]"
+            }`}
             disabled={isLoading}
             rows={isExpanded ? 8 : 3}
           />
