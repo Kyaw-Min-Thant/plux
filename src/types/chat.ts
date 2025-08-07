@@ -14,6 +14,7 @@ export interface Conversation {
   mode: ChatMode;
   createdAt: number;
   updatedAt: number;
+  isFavorite?: boolean;
 }
 
 export interface ChatRequest {

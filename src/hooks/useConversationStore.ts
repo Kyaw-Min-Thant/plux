@@ -12,6 +12,7 @@ interface ConversationStore {
   setCurrentConversation: (id: string) => void;
   updateConversationTitle: (id: string, title: string) => void;
   updateConversationMode: (id: string, mode: ChatMode) => void;
+  toggleFavorite: (id: string) => void;
 
   // Message management
   addMessage: (conversationId: string, message: ChatMessage) => void;
@@ -50,6 +51,7 @@ export const useConversationStore = create<ConversationStore>()(
           mode,
           createdAt: now,
           updatedAt: now,
+          isFavorite: false,
         };
 
         set((state) => ({
@@ -95,6 +97,16 @@ export const useConversationStore = create<ConversationStore>()(
         set((state) => ({
           conversations: state.conversations.map((conv) =>
             conv.id === id ? { ...conv, mode, updatedAt: Date.now() } : conv,
+          ),
+        }));
+      },
+
+      toggleFavorite: (id: string) => {
+        set((state) => ({
+          conversations: state.conversations.map((conv) =>
+            conv.id === id 
+              ? { ...conv, isFavorite: !conv.isFavorite, updatedAt: Date.now() } 
+              : conv,
           ),
         }));
       },
@@ -161,7 +173,7 @@ export const useConversationStore = create<ConversationStore>()(
     }),
     {
       name: "conversation-storage",
-      version: 2,
+      version: 3,
       migrate: (persistedState: any, version: number) => {
         if (version < 2) {
           // Migrate from version 1: add mode field to existing conversations
@@ -170,6 +182,17 @@ export const useConversationStore = create<ConversationStore>()(
               (conv: any) => ({
                 ...conv,
                 mode: conv.mode || "chat", // Default to chat mode
+              }),
+            );
+          }
+        }
+        if (version < 3) {
+          // Migrate from version 2: add isFavorite field to existing conversations
+          if (persistedState.conversations) {
+            persistedState.conversations = persistedState.conversations.map(
+              (conv: any) => ({
+                ...conv,
+                isFavorite: conv.isFavorite || false, // Default to not favorite
               }),
             );
           }

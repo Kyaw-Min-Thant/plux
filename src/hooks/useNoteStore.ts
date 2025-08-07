@@ -8,6 +8,7 @@ export interface Note {
   createdAt: number;
   updatedAt: number;
   tags?: string[];
+  isFavorited?: boolean;
 }
 
 interface NoteStore {
@@ -21,6 +22,7 @@ interface NoteStore {
   setCurrentNote: (id: string | null) => void;
   addContentToNote: (id: string, content: string, source?: string) => void;
   createNoteFromContent: (content: string, source?: string) => Note;
+  toggleFavorite: (id: string) => void;
   
   // Getters
   getCurrentNote: () => Note | null;
@@ -125,6 +127,16 @@ export const useNoteStore = create<NoteStore>()(
       getNoteById: (id) => {
         const { notes } = get();
         return notes.find((note) => note.id === id) || null;
+      },
+
+      toggleFavorite: (id) => {
+        set((state) => ({
+          notes: state.notes.map((note) =>
+            note.id === id
+              ? { ...note, isFavorited: !note.isFavorited }
+              : note
+          ),
+        }));
       },
     }),
     {
