@@ -179,6 +179,7 @@ bun tauri build
 ```bash
 # Option 1: Rust version (recommended)
 cargo install rust-mcp-filesystem
+```
 
 or download [rust-mcp-filesystem](https://rust-mcp-stack.github.io/rust-mcp-filesystem/#/guide/install)
 
@@ -195,7 +196,7 @@ or download [rust-mcp-filesystem](https://rust-mcp-stack.github.io/rust-mcp-file
 }
 ```
 
-# Option 2: Node.js version  
+#### Option 2: Node.js version  
 
 ```json
 {
