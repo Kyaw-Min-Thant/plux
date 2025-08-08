@@ -16,7 +16,7 @@ export function ServersPopover() {
           <Settings2 />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="p-0 w-80" side="top" align="start">
+      <PopoverContent className="p-0 w-80 h-96 overflow-y-auto" side="top" align="start">
         <McpServers />
       </PopoverContent>
     </Popover>

@@ -1,8 +1,9 @@
 import { Collapsible, CollapsibleContent } from "./ui/collapsible";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Search } from "lucide-react";
 import { Switch } from "./ui/switch";
+import { Input } from "./ui/input";
 import { useMcpStore } from "@/hooks/useMcpStore";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { McpServerTransportConfig, StdioConfig } from "@/types/mcp";
 
 function isStdioConfig(
@@ -22,6 +23,12 @@ export default function McpServers() {
     loadServers,
   } = useMcpStore();
 
+  const [filterText, setFilterText] = useState("");
+
+  const filteredServers = servers.filter(server =>
+    server.name.toLowerCase().includes(filterText.toLowerCase())
+  );
+
   useEffect(() => {
     loadServers();
   }, [loadServers]);
@@ -29,8 +36,18 @@ export default function McpServers() {
   return (
     <div className="w-80 border-r bg-gray-50 overflow-y-auto">
       <div className="p-4">
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Input
+            type="text"
+            placeholder="Filter servers..."
+            value={filterText}
+            onChange={(e) => setFilterText(e.target.value)}
+            className="pl-10"
+          />
+        </div>
         <div className="space-y-2">
-          {servers.map((server) => (
+          {filteredServers.map((server) => (
             <div key={server.name} className=" rounded-lg p-1">
               <div className="flex items-center justify-between">
                 <span className="font-medium text-sm">{server.name}</span>
