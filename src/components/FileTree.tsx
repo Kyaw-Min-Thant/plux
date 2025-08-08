@@ -88,6 +88,7 @@ export function FileTree({
 
   const handleSetWorkingFolder = (folderPath: string) => {
     setCurrentFolder(folderPath);
+    setFilterText("");
     loadDirectory(folderPath);
   };
 

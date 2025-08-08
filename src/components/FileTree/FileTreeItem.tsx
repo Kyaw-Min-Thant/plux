@@ -64,7 +64,7 @@ export function FileTreeItem({
   return (
     <div
       className="group"
-      style={{ marginLeft: `${level * 16}px` }}
+      style={{ marginLeft: `${level * 2}px` }}
       onMouseEnter={handleMouseEnter}
     >
       <div className="flex items-center gap-0.5 py-1 px-1 hover:bg-gray-100 rounded">
