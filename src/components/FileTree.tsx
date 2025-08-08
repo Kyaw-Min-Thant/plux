@@ -36,7 +36,7 @@ export function FileTree({
   const [showFilter, setShowFilter] = useState(false);
   const { excludeFolders } = useSettingsStore();
   const { setCurrentFolder } = useFolderStore();
-  const { addFile } = useContextFilesStore();
+  const { addFile, clearFiles } = useContextFilesStore();
   const { calculateTokens } = useFileTokens();
 
   const loadDirectory = async (path?: string) => {
@@ -81,8 +81,12 @@ export function FileTree({
   };
 
   const handleFileClick = (path: string, isDirectory: boolean) => {
-    if (!isDirectory && onFileClick) {
-      onFileClick(path);
+    if (!isDirectory) {
+      clearFiles();
+      addFile(path);
+      if (onFileClick) {
+        onFileClick(path);
+      }
     }
   };
 
