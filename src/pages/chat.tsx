@@ -113,7 +113,7 @@ export default function ChatPage() {
             />
           </div>
         )}
-        <div className="flex-1">
+        <div className="flex-1 min-w-0 overflow-hidden">
           {selectedFile ? (
             <FileViewer filePath={selectedFile} onClose={handleCloseFile} addToNotepad={addToNote} />
           ) : (

@@ -154,7 +154,7 @@ export function FileViewer({ filePath, onClose, addToNotepad }: FileViewerProps)
   if (!filePath) return null;
 
   return (
-    <div className="flex flex-col h-full border-l border-gray-200">
+    <div className="flex flex-col h-full border-l border-gray-200 min-w-0">
       <div className="flex items-center justify-between p-3 border-b border-gray-200 bg-gray-50">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-sm font-medium truncate" title={filePath}>
@@ -250,13 +250,13 @@ export function FileViewer({ filePath, onClose, addToNotepad }: FileViewerProps)
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
         {loading ? (
           <div className="p-4 text-center text-gray-500">Loading file...</div>
         ) : error ? (
           <div className="p-4 text-center text-red-500">{error}</div>
         ) : isCodeFile ? (
-          <div onMouseUp={handleTextSelection}>
+          <div onMouseUp={handleTextSelection} className="min-w-0">
             <SyntaxHighlighter
               language={getLanguage}
               style={isDarkTheme ? tomorrow : prism}
@@ -265,6 +265,7 @@ export function FileViewer({ filePath, onClose, addToNotepad }: FileViewerProps)
                 padding: "1rem",
                 background: "transparent",
                 fontSize: "0.875rem",
+                overflow: "hidden",
               }}
               showLineNumbers={true}
               wrapLines={true}
@@ -289,8 +290,8 @@ export function FileViewer({ filePath, onClose, addToNotepad }: FileViewerProps)
             )}
           </div>
         ) : (
-          <div onMouseUp={handleTextSelection}>
-            <pre className="p-4 text-sm font-mono whitespace-pre-wrap break-words">
+          <div onMouseUp={handleTextSelection} className="min-w-0">
+            <pre className="p-4 text-sm font-mono whitespace-pre-wrap break-all overflow-x-auto">
               {displayContent}
             </pre>
             {isLargeFile && !showFullContent && (
