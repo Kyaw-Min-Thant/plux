@@ -133,6 +133,7 @@ export function FileTree({
         onFilterTextChange={setFilterText}
         showFilter={showFilter}
         onToggleFilter={() => setShowFilter(!showFilter)}
+        onRefresh={() => loadDirectory()}
         excludeFolders={excludeFolders}
       />
 

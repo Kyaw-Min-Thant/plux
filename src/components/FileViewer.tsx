@@ -102,7 +102,6 @@ export function FileViewer({ filePath, onClose, addToNotepad }: FileViewerProps)
     if (content) {
       const fileName = getFileName();
       addFileContent(fileName, content, selectedText || undefined);
-      onClose(); // Close the file viewer and navigate to chat
     }
   };
 

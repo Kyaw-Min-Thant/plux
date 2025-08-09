@@ -1,7 +1,7 @@
 use crate::{
     mcp_client::{
         chat::ChatSession,
-        client::{common::{ChatClient, StreamingChatClient}, gemini::GeminiClient, openai::OpenAIClient},
+        client::{common::{ChatClient, StreamingChatClient}, llm::LlmClient},
     },
     GlobalToolSet,
 };
@@ -47,9 +47,9 @@ pub async fn send_message(
             println!("Creating new session with provider: {}, api_key length: {}", 
                      request.provider, request.api_key.len());
             let client: Arc<dyn ChatClient> = if request.provider == "google" {
-                Arc::new(GeminiClient::new(request.api_key.clone(), request.base_url.clone(), None))
+                Arc::new(LlmClient::new_gemini(request.api_key.clone(), request.base_url.clone(), None))
             } else {
-                Arc::new(OpenAIClient::new(request.api_key.clone(), request.base_url.clone(), None))
+                Arc::new(LlmClient::new_openai(request.api_key.clone(), request.base_url.clone(), None))
             };
             let mut new_session = ChatSession::new(client, (*tool_set.0).clone(), request.model);
             new_session
@@ -125,9 +125,9 @@ pub async fn send_message_stream(
             println!("Creating new session with provider: {}, api_key length: {}", 
                      request.provider, request.api_key.len());
             let client: Arc<dyn ChatClient> = if request.provider == "google" {
-                Arc::new(GeminiClient::new(request.api_key.clone(), request.base_url.clone(), None))
+                Arc::new(LlmClient::new_gemini(request.api_key.clone(), request.base_url.clone(), None))
             } else {
-                Arc::new(OpenAIClient::new(request.api_key.clone(), request.base_url.clone(), None))
+                Arc::new(LlmClient::new_openai(request.api_key.clone(), request.base_url.clone(), None))
             };
             let mut new_session = ChatSession::new(client, (*tool_set.0).clone(), request.model);
             new_session
@@ -184,13 +184,13 @@ pub async fn send_message_stream(
     println!("🔥 Calling streaming method for provider: {}", request.provider);
     let result = if request.provider == "google" {
         println!("📡 Using Gemini streaming");
-        let gemini_client = GeminiClient::new(request.api_key.clone(), request.base_url.clone(), None);
-        gemini_client.complete_stream(stream_request, callback).await
+        let llm_client = LlmClient::new_gemini(request.api_key.clone(), request.base_url.clone(), None);
+        llm_client.complete_stream(stream_request, callback).await
     } else {
         println!("📡 Using OpenAI-compatible streaming for provider: {}", request.provider);
         // OpenAI-compatible providers (OpenAI, Ollama, OpenRouter, Anthropic, etc.)
-        let openai_client = OpenAIClient::new(request.api_key.clone(), request.base_url.clone(), None);
-        openai_client.complete_stream(stream_request, callback).await
+        let llm_client = LlmClient::new_openai(request.api_key.clone(), request.base_url.clone(), None);
+        llm_client.complete_stream(stream_request, callback).await
     };
     println!("🎯 Streaming method result: {:?}", result.is_ok());
 

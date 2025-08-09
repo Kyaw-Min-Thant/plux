@@ -15,7 +15,7 @@
 
 *Built for developers, researchers, writers, and anyone tired of copy-pasting files into AI chats.*
 
-[🚀 **Download Now**](#getting-started) • [📖 **Documentation**](./docs) • [💬 **Community**](https://github.com/milisp/plux/discussions) • [⭐ **Star Us**](https://github.com/milisp/plux/stargazers)
+[🚀 **Download Now**](https://github.com/milisp/plux/releases) • [📖 **Documentation**](./docs) • [💬 **Community**](https://github.com/milisp/plux/discussions) • [⭐ **Star Us**](https://github.com/milisp/plux/stargazers)
 
 </div>
 

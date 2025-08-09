@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Folder, Filter } from "lucide-react";
+import { Folder, Filter, RefreshCw } from "lucide-react";
 
 interface FileTreeHeaderProps {
   currentFolder?: string;
@@ -9,6 +9,7 @@ interface FileTreeHeaderProps {
   onFilterTextChange: (text: string) => void;
   showFilter: boolean;
   onToggleFilter: () => void;
+  onRefresh: () => void;
   excludeFolders: string[];
 }
 
@@ -18,6 +19,7 @@ export function FileTreeHeader({
   onFilterTextChange,
   showFilter,
   onToggleFilter,
+  onRefresh,
   excludeFolders,
 }: FileTreeHeaderProps) {
   const getCurrentDirectoryName = () => {
@@ -27,14 +29,25 @@ export function FileTreeHeader({
 
   return (
     <div className="p-2 border-b space-y-2">
-      <div className="flex items-center gap-2 mb-2">
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-2">
         <Folder className="w-4 h-4 text-blue-500" />
-        <span
-          className="text-sm font-medium text-gray-700 truncate"
-          title={currentFolder || "Home"}
+          <span
+            className="text-sm font-medium text-gray-700 truncate"
+            title={currentFolder || "Home"}
+          >
+            {getCurrentDirectoryName()}
+          </span>
+        </div>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onRefresh}
+          title="Refresh directory"
         >
-          {getCurrentDirectoryName()}
-        </span>
+          <RefreshCw className="w-4 h-4" />
+        </Button>
       </div>
 
       <div className="flex items-center gap-2">
