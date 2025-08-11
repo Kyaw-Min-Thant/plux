@@ -1,7 +1,6 @@
 # Plux: The End of Copy-Paste AI Workflows
 
-> **File tree + plus button** — One-click your files to AI.  
-> Your personal **AI finder/explorer**.
+> **AI + Filetree + plus button + notepad** — One-click your files to AI. Built-in magic notepad saves insights.
 
 <div align="center">
 
@@ -30,8 +29,8 @@
 **Supported File Types**: PDF, CSV, code files, Markdown, plain text, and more
 
 **MCP Server Options**:
-- Rust: `cargo install rust-mcp-filesystem`
-- Node.js: `npm install -g @modelcontextprotocol/server-filesystem`
+- Rust: `rust-mcp-filesystem`
+- Node.js: `@modelcontextprotocol/server-filesystem`
 
 **Performance**: Native Tauri app (~6MB) with instant file tree navigation and syntax-highlighted preview
 
@@ -90,6 +89,7 @@
 - 📊 **Universal File Support**: PDFs, CSVs, code, markdown, anything
 - 🎨 **Beautiful Code Viewer**: Syntax highlighting that doesn't hurt your eyes
 - 📝 **Built-in Notepad**: Save insights without switching apps
+- ✏️ **Lightweight Editing**: Make quick changes to text, markdown, and code files without leaving Plux
 - ⚡ **Desktop Speed**: Native Tauri performance (~6MB)
 - 🔒 **Privacy First**: Your files never leave your machine
 
@@ -239,6 +239,7 @@ or download [rust-mcp-filesystem](https://rust-mcp-stack.github.io/rust-mcp-file
 - [x] ✅ Built-in notepad system
 - [ ] 🚧 **Smart context suggestions** - "You might also want these files"
 - [ ] ⚙️ Auto-download and path setup for rust-mcp-filesystem
+- [ ] ✏️ **Lightweight editor** - Inline editing for quick changes without switching tools
 - [ ] 📊 Model comparison view
 - [ ] 📱 **Mobile companion app** - Access your notes anywhere  
 - [ ] 🧠 **Context memory** - Remember file combinations across sessions
