@@ -3,32 +3,8 @@ import { listen } from "@tauri-apps/api/event";
 import type { ChatMessage } from "@/types/chat";
 import { useChatStore } from "@/hooks/useChatStore";
 import { useConversationStore } from "@/hooks/useConversationStore";
+import { useProviderStore } from "@/stores/providerStore";
 
-const getProviderDefaults = (provider: string) => {
-  const defaults = {
-    openai: {
-      baseUrl: "https://api.openai.com/v1/chat/completions",
-      apiKey: "",
-    },
-    google: {
-      baseUrl:
-        "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-      apiKey: "",
-    },
-    ollama: {
-      baseUrl: "http://localhost:11434/v1/chat/completions",
-      apiKey: "ollama",
-    },
-    anthropic: { baseUrl: "https://api.anthropic.com/v1/messages", apiKey: "" },
-    openrouter: {
-      baseUrl: "https://openrouter.ai/api/v1/chat/completions",
-      apiKey: "",
-    },
-  };
-  return (
-    defaults[provider as keyof typeof defaults] || { baseUrl: "", apiKey: "" }
-  );
-};
 
 export const handleSendMessage = async () => {
   console.log("🚀 handleSendMessage called");
@@ -56,14 +32,12 @@ export const handleSendMessage = async () => {
       isLoading: true,
     });
 
-    // Get provider config from localStorage
-    const storedProvider = localStorage.getItem("selectedProvider") || "openai";
-    const storedModel = localStorage.getItem("selectedModel") || "";
-    const defaults = getProviderDefaults(storedProvider);
-    const storedApiKey =
-      localStorage.getItem(`${storedProvider}_API_KEY`) || defaults.apiKey;
-    const storedBaseUrl =
-      localStorage.getItem(`${storedProvider}_BASE_URL`) || defaults.baseUrl;
+    // Get provider config from store
+    const providerStore = useProviderStore.getState();
+    const storedProvider = providerStore.selectedProvider;
+    const storedModel = providerStore.selectedModel;
+    const storedApiKey = providerStore.getCurrentApiKey();
+    const storedBaseUrl = providerStore.getCurrentBaseUrl();
 
     // Get current conversation mode
     const conversationStore = useConversationStore.getState();
@@ -155,14 +129,12 @@ export const handleSendMessageStream = async (
     return;
   }
 
-  // Get provider config from localStorage
-  const storedProvider = localStorage.getItem("selectedProvider") || "openai";
-  const storedModel = localStorage.getItem("selectedModel") || "";
-  const defaults = getProviderDefaults(storedProvider);
-  const storedApiKey =
-    localStorage.getItem(`${storedProvider}_API_KEY`) || defaults.apiKey;
-  const storedBaseUrl =
-    localStorage.getItem(`${storedProvider}_BASE_URL`) || defaults.baseUrl;
+  // Get provider config from store
+  const providerStore = useProviderStore.getState();
+  const storedProvider = providerStore.selectedProvider;
+  const storedModel = providerStore.selectedModel;
+  const storedApiKey = providerStore.getCurrentApiKey();
+  const storedBaseUrl = providerStore.getCurrentBaseUrl();
 
   // Create streaming assistant message
   const streamingMessage: ChatMessage = {

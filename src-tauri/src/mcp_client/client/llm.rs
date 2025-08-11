@@ -96,7 +96,7 @@ use anyhow::Result;
 
       if !response.status().is_success() {
           let error_text = response.text().await?;
-          println!("{} API error: {}", self.log_prefix(), error_text);
+          println!("{} API error url {}: {}", self.log_prefix(), self.base_url, error_text);
           return Err(anyhow::anyhow!("{} API Error: {}", self.log_prefix(), error_text));
       }
 

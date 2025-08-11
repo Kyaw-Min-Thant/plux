@@ -4,8 +4,8 @@ import { useSettingsStore } from "@/hooks/useSettingsStore";
 import { useFolderStore } from "@/hooks/useFolderStore";
 import { useContextFilesStore } from "@/hooks/useContextFilesStore";
 import { useFileTokens } from "@/hooks/useFileTokens";
-import { FileTreeHeader } from "./FileTree/FileTreeHeader";
-import { FileTreeItem } from "./FileTree/FileTreeItem";
+import { FileTreeHeader } from "./FileTreeHeader";
+import { FileTreeItem } from "./FileTreeItem";
 
 interface FileEntry {
   name: string;

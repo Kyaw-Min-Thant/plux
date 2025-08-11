@@ -9,7 +9,7 @@ import {
 } from "@/components/chat";
 import { NoteList, NoteEditor } from "@/components/notes";
 import { FileTree } from "@/components/FileTree";
-import { FileViewer } from "@/components/FileViewer";
+import { FileViewer } from "@/components/FileTree/FileViewer";
 import { useFolderStore } from "@/hooks/useFolderStore";
 import { useLayoutStore } from "@/hooks/useLayoutStore";
 import { useNoteStore } from "@/hooks/useNoteStore";

@@ -246,6 +246,7 @@ or download [rust-mcp-filesystem](https://rust-mcp-stack.github.io/rust-mcp-file
 - [ ] 🎨 **Custom themes** - Make Plux match your style
 - [ ] 🚀 **Auto-setup wizard** - Zero-config MCP server installation
 - [ ] 🔌 **Plugin ecosystem** - Community-built file type support
+- [ ] 🤖 Mutil steps agent
 
 ---
 

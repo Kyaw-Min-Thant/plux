@@ -30,6 +30,15 @@ export type Provider =
   | "google"
   | "ollama";
 
+
+export interface ProviderConfig {
+    value: Provider;
+    label: string;
+    models: string[];
+    defaultBaseUrl?: string;
+  }
+  
+
 export interface AppConfig {
   provider?: string;
   api_key?: string;

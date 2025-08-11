@@ -2,22 +2,23 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { X, Plus } from "lucide-react";
-import { useProvider } from "@/hooks/useProvider";
+import { useProviderStore } from "@/stores/providerStore";
 import { useSettingsStore } from "@/hooks/useSettingsStore";
 import { useState } from "react";
+import { Provider } from "@/types/chat";
 
 function SettingsPage() {
-  const {
-    apiKey,
-    setApiKey,
-    selectedProvider,
-    setSelectedProvider,
-    providers,
-    models,
-    baseUrl,
-    setBaseUrl,
-    selectedProviderConfig,
-  } = useProvider();
+  // Local state for settings page only - doesn't affect chat provider
+  const [settingsProvider, setSettingsProvider] = useState<Provider>('openai');
+  
+  // Get provider store methods
+  const { providers, apiKeys, baseUrls, setApiKey, setBaseUrl } = useProviderStore();
+  
+  // Get current settings for selected provider
+  const selectedProviderConfig = providers.find(p => p.value === settingsProvider);
+  const apiKey = apiKeys[settingsProvider] || '';
+  const baseUrl = baseUrls[settingsProvider] || '';
+  const models = selectedProviderConfig?.models || [];
 
   const { excludeFolders, addExcludeFolder, removeExcludeFolder } =
     useSettingsStore();
@@ -36,16 +37,16 @@ function SettingsPage() {
   return (
     <div className="p-6">
       <h1 className="text-lg font-semibold mb-4">
-        Settings for {selectedProvider}
+        Settings for {settingsProvider}
       </h1>
       <div className="flex gap-8">
         <div className="flex flex-col space-y-2">
           {providers.map((provider) => (
             <button
               key={provider.value}
-              onClick={() => setSelectedProvider(provider.value)}
+              onClick={() => setSettingsProvider(provider.value)}
               className={`px-3 py-2 text-sm rounded ${
-                selectedProvider === provider.value
+                settingsProvider === provider.value
                   ? "bg-gray-200 font-medium"
                   : "hover:bg-gray-100"
               }`}
@@ -57,17 +58,17 @@ function SettingsPage() {
 
         <div className="flex flex-col space-y-1 max-w-sm">
           <label className="text-xs text-gray-500">
-            API Key for {selectedProvider}
-            {selectedProvider === "ollama" && (
+            API Key for {settingsProvider}
+            {settingsProvider === "ollama" && (
               <span className="text-gray-400"> (Usually not required)</span>
             )}
           </label>
           <Input
             type="password"
             value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
+            onChange={(e) => setApiKey(settingsProvider, e.target.value)}
             placeholder={
-              selectedProvider === "ollama"
+              settingsProvider === "ollama"
                 ? "Leave empty for local Ollama"
                 : "Enter API Key"
             }
@@ -80,7 +81,7 @@ function SettingsPage() {
           <Input
             type="text"
             value={baseUrl}
-            onChange={(e) => setBaseUrl(e.target.value)}
+            onChange={(e) => setBaseUrl(settingsProvider, e.target.value)}
             placeholder={
               selectedProviderConfig?.defaultBaseUrl || "Enter custom base URL"
             }
@@ -93,7 +94,7 @@ function SettingsPage() {
               "Enter custom base URL for this provider"
             )}
           </div>
-          {selectedProvider === "ollama" && (
+          {settingsProvider === "ollama" && (
             <div className="text-xs text-blue-600 mt-1">
               💡 Make sure Ollama is running locally with:{" "}
               <code className="bg-gray-100 px-1 rounded">ollama serve</code>
