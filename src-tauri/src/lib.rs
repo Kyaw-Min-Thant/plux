@@ -10,7 +10,7 @@ use cmd::{
     chat::{ChatState, list_tools, send_message, send_message_stream},
     dxt::{fetch_and_save_manifest, load_manifest, load_manifests},
     dxt_status::{read_dxt_setting, save_dxt_setting},
-    filesystem::{read_directory, get_default_directories, calculate_file_tokens, read_file, read_pdf_content, read_csv_content, read_xlsx_content},
+    filesystem::{read_directory, get_default_directories, calculate_file_tokens, read_file, write_file, read_pdf_content, read_csv_content, read_xlsx_content},
 };
 use mcp_client::tool::ToolSet;
 
@@ -20,6 +20,7 @@ pub struct GlobalToolSet(pub Arc<ToolSet>);
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_os::init())
         .manage(ChatState {
             session: Mutex::new(None),
         })
@@ -61,6 +62,7 @@ pub fn run() {
             get_default_directories,
             calculate_file_tokens,
             read_file,
+            write_file,
             read_pdf_content,
             read_csv_content,
             read_xlsx_content,

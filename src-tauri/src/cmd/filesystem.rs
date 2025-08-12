@@ -129,6 +129,39 @@ pub async fn read_file(file_path: String) -> Result<String, String> {
 }
 
 #[tauri::command]
+pub async fn write_file(file_path: String, content: String) -> Result<(), String> {
+    let expanded_path = if file_path.starts_with("~/") {
+        let home = dirs::home_dir()
+            .ok_or_else(|| "Cannot find home directory".to_string())?;
+        home.join(&file_path[2..])
+    } else {
+        Path::new(&file_path).to_path_buf()
+    };
+    
+    // Basic safety check: only allow writing to text files
+    let extension = expanded_path.extension()
+        .and_then(|ext| ext.to_str())
+        .map(|s| s.to_lowercase());
+    
+    let is_text_file = match extension.as_deref() {
+        Some("txt") | Some("md") | Some("json") | Some("xml") | Some("yaml") | Some("yml") |
+        Some("js") | Some("jsx") | Some("ts") | Some("tsx") | Some("rs") | Some("py") |
+        Some("java") | Some("cpp") | Some("c") | Some("h") | Some("css") | Some("html") |
+        Some("toml") | Some("cfg") | Some("ini") | Some("sh") | Some("log") => true,
+        _ => false,
+    };
+    
+    if !is_text_file {
+        return Err("Only text files can be edited".to_string());
+    }
+    
+    match fs::write(&expanded_path, content) {
+        Ok(()) => Ok(()),
+        Err(e) => Err(format!("Failed to write file: {}", e)),
+    }
+}
+
+#[tauri::command]
 pub async fn read_pdf_content(file_path: String) -> Result<String, String> {
     let expanded_path = if file_path.starts_with("~/") {
         let home = dirs::home_dir()

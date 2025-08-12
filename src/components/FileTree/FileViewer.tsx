@@ -1,13 +1,9 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Button } from "@/components/ui/button";
 import { X, Copy, Check, Sun, Moon, Send, FileText } from "lucide-react";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import {
-  tomorrow,
-  prism,
-} from "react-syntax-highlighter/dist/esm/styles/prism";
-import { languageMap } from "./languageMap";
+import { CodeEditor } from "./CodeEditor";
+import { useEditorStore } from "@/hooks/useEditorStore";
 import { useChatStore } from "@/hooks/useChatStore";
 
 interface FileViewerProps {
@@ -21,9 +17,10 @@ export function FileViewer({ filePath, onClose, addToNotepad }: FileViewerProps)
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [isDarkTheme, setIsDarkTheme] = useState(false);
   const [showFullContent, setShowFullContent] = useState(false);
   const [selectedText, setSelectedText] = useState<string>("");
+  const [currentContent, setCurrentContent] = useState<string>("");
+  const { isDarkTheme, setIsDarkTheme } = useEditorStore();
   const { addFileContent } = useChatStore();
 
   const getFileName = () => {
@@ -75,6 +72,7 @@ export function FileViewer({ filePath, onClose, addToNotepad }: FileViewerProps)
         }
 
         setContent(fileContent);
+        setCurrentContent(fileContent);
       } catch (err) {
         setError(err as string);
       } finally {
@@ -85,8 +83,12 @@ export function FileViewer({ filePath, onClose, addToNotepad }: FileViewerProps)
     loadFile();
   }, [filePath]);
 
+  useEffect(() => {
+    setCurrentContent(content);
+  }, [content]);
+
   const handleCopy = async () => {
-    const textToCopy = selectedText || content;
+    const textToCopy = selectedText || currentContent;
     if (textToCopy) {
       try {
         await navigator.clipboard.writeText(textToCopy);
@@ -98,57 +100,57 @@ export function FileViewer({ filePath, onClose, addToNotepad }: FileViewerProps)
     }
   };
 
+  const handleSave = async (newContent: string) => {
+    if (!filePath) return;
+    
+    try {
+      await invoke("write_file", { 
+        filePath, 
+        content: newContent 
+      });
+      setContent(newContent);
+      setCurrentContent(newContent);
+    } catch (err) {
+      console.error("Failed to save file:", err);
+      throw new Error(`Failed to save file: ${err}`);
+    }
+  };
+
   const handleSendToAI = () => {
-    if (content) {
+    if (currentContent) {
       const fileName = getFileName();
-      addFileContent(fileName, content, selectedText || undefined);
+      addFileContent(fileName, currentContent, selectedText || undefined);
     }
   };
 
   const handleAddToNote = () => {
-    if (addToNotepad && content) {
+    if (addToNotepad && currentContent) {
       const fileName = getFileName();
-      const textToAdd = selectedText || content;
+      const textToAdd = selectedText || currentContent;
       addToNotepad(textToAdd, `File: ${fileName}`);
     }
   };
 
-  const handleTextSelection = () => {
-    const selection = window.getSelection();
-    if (selection) {
-      const selectedText = selection.toString().trim();
-      setSelectedText(selectedText);
-    }
+  const handleSelectionChange = (newSelectedText: string) => {
+    setSelectedText(newSelectedText);
   };
 
-  const getLanguage = useMemo(() => {
-    const extension = getFileExtension();
-    return languageMap[extension] || "text";
-  }, [filePath]);
+  const handleContentChange = (newContent: string) => {
+    setCurrentContent(newContent);
+  };
 
-  const isCodeFile = useMemo(() => {
-    return getLanguage !== "text";
-  }, [getLanguage]);
+  const handleToggleContent = () => {
+    setShowFullContent(!showFullContent);
+  };
 
   const MAX_LINES = 500;
+  const isLargeFile = content.split("\n").length > MAX_LINES;
 
-  const displayContent = useMemo(() => {
-    if (!content) return "";
-    if (showFullContent) return content;
-
+  const displayContent = showFullContent ? content : (() => {
     const lines = content.split("\n");
     if (lines.length <= MAX_LINES) return content;
-
     return lines.slice(0, MAX_LINES).join("\n");
-  }, [content, showFullContent]);
-
-  const isLargeFile = useMemo(() => {
-    return content.split("\n").length > MAX_LINES;
-  }, [content]);
-
-  const handleToggleContent = useCallback(() => {
-    setShowFullContent((prev) => !prev);
-  }, []);
+  })();
 
   if (!filePath) return null;
 
@@ -177,23 +179,21 @@ export function FileViewer({ filePath, onClose, addToNotepad }: FileViewerProps)
               {showFullContent ? "500" : "All"}
             </Button>
           )}
-          {isCodeFile && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsDarkTheme(!isDarkTheme)}
-              className="p-1 h-auto"
-              title={
-                isDarkTheme ? "Switch to light theme" : "Switch to dark theme"
-              }
-            >
-              {isDarkTheme ? (
-                <Sun className="w-4 h-4" />
-              ) : (
-                <Moon className="w-4 h-4" />
-              )}
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsDarkTheme(!isDarkTheme)}
+            className="p-1 h-auto"
+            title={
+              isDarkTheme ? "Switch to light theme" : "Switch to dark theme"
+            }
+          >
+            {isDarkTheme ? (
+              <Sun className="w-4 h-4" />
+            ) : (
+              <Moon className="w-4 h-4" />
+            )}
+          </Button>
           <Button
             variant="ghost"
             size="sm"
@@ -249,50 +249,21 @@ export function FileViewer({ filePath, onClose, addToNotepad }: FileViewerProps)
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+      <div className="flex-1 overflow-hidden">
         {loading ? (
           <div className="p-4 text-center text-gray-500">Loading file...</div>
         ) : error ? (
           <div className="p-4 text-center text-red-500">{error}</div>
-        ) : isCodeFile ? (
-          <div onMouseUp={handleTextSelection} className="min-w-0">
-            <SyntaxHighlighter
-              language={getLanguage}
-              style={isDarkTheme ? tomorrow : prism}
-              customStyle={{
-                margin: 0,
-                padding: "1rem",
-                background: "transparent",
-                fontSize: "0.875rem",
-                overflow: "hidden",
-              }}
-              showLineNumbers={true}
-              wrapLines={true}
-              wrapLongLines={true}
-            >
-              {displayContent}
-            </SyntaxHighlighter>
-            {isLargeFile && !showFullContent && (
-              <div className="p-4 text-center border-t border-gray-200 bg-gray-50">
-                <p className="text-sm text-gray-600 mb-2">
-                  Showing first {MAX_LINES} lines of{" "}
-                  {content.split("\n").length} total lines
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleToggleContent}
-                >
-                  Show All Lines
-                </Button>
-              </div>
-            )}
-          </div>
         ) : (
-          <div onMouseUp={handleTextSelection} className="min-w-0">
-            <pre className="p-4 text-sm font-mono whitespace-pre-wrap break-all overflow-x-auto">
-              {displayContent}
-            </pre>
+          <div className="h-full flex flex-col">
+            <CodeEditor
+              content={displayContent}
+              filePath={filePath}
+              onContentChange={handleContentChange}
+              onSave={handleSave}
+              onSelectionChange={handleSelectionChange}
+              className="flex-1"
+            />
             {isLargeFile && !showFullContent && (
               <div className="p-4 text-center border-t border-gray-200 bg-gray-50">
                 <p className="text-sm text-gray-600 mb-2">
