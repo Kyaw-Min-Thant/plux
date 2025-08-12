@@ -34,6 +34,7 @@ function DXTPage() {
     const searchTerm = filterText.toLowerCase();
     return (
       dxt.name.toLowerCase().includes(searchTerm) ||
+      dxt.display_name?.toLowerCase().includes(searchTerm) ||
       (dxt.description && dxt.description.toLowerCase().includes(searchTerm))
     );
   });
@@ -72,7 +73,7 @@ function DXTPage() {
               className="pl-10"
             />
           </div>
-          <div className="grid grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 h-screen overflow-y-auto">
             {filteredDxtList.map((dxt, idx) => (
               <DxtCard key={idx} dxt={dxt} />
             ))}

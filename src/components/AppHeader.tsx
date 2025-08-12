@@ -9,9 +9,13 @@ import {
   Settings,
   Usb,
   Pin,
+  PanelLeft,
+  MessageSquare
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { useFolderStore } from "@/hooks/useFolderStore";
+import { useLayoutStore } from "@/hooks/useLayoutStore";
 
 const folderButtons = [
   { folder: "~/", icon: <Home /> },
@@ -29,6 +33,8 @@ const routeLinks = [
 ];
 
 export function AppHeader() {
+  const { showChatPane, showFileTree, toggleChatPane, toggleFileTree } =
+    useLayoutStore();
   const { currentFolder, setCurrentFolder } = useFolderStore();
   const navigate = useNavigate();
 
@@ -38,17 +44,17 @@ export function AppHeader() {
   };
 
   return (
-    <div className="flex mt-2 justify-between px-2">
-      <span className="flex gap-2">
+    <div data-tauri-drag-region className="flex pl-20 mt-2 justify-between px-2">
+      <span className="flex gap-1">
         {/* Welcome button */}
         <Link to="/welcome">
-          <PartyPopper />
+          <PartyPopper className="w-5 h-5" />
         </Link>
 
         {/* Current folder pin button */}
         {currentFolder && (
           <button
-            className="hover:bg-gray-100 p-1 rounded flex items-center gap-1"
+            className="hover:bg-gray-100 rounded flex items-center"
             onClick={() => handleFolderClick(currentFolder)}
           >
             <Pin className="w-4 h-4" />
@@ -60,12 +66,23 @@ export function AppHeader() {
           <button
             key={folder}
             onClick={() => handleFolderClick(folder)}
-            className="hover:bg-gray-100 p-1 rounded"
+            className="hover:bg-gray-100 rounded"
           >
             {icon}
           </button>
         ))}
+        
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleFileTree}
+          className={`h-6 w-6 ${showFileTree ? "bg-primary/20" : ""}`}
+        >
+          <PanelLeft className="w-3 h-3" />
+        </Button>
+        
       </span>
+      
       <span className="flex gap-2">
         {/* Route links for settings and dxt */}
         {routeLinks.slice(1).map(({ to, icon }) => (
@@ -73,6 +90,16 @@ export function AppHeader() {
             {icon}
           </Link>
         ))}
+        
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleChatPane}
+          className={`h-6 w-6 ${showChatPane ? "bg-primary/20" : ""}`}
+        >
+          <MessageSquare className="w-3 h-3" />
+        </Button>
+        
       </span>
     </div>
   );

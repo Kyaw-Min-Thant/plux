@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Edit, Save, XCircle, Search, ChevronUp, ChevronDown, X } from "lucide-react";
+import { Save, Search, ChevronUp, ChevronDown, X } from "lucide-react";
 import AceEditor from "react-ace";
 import { useEditorStore } from "@/hooks/useEditorStore";
 // Import Ace Editor modes
@@ -52,7 +52,6 @@ export function CodeEditor({
 }: CodeEditorProps) {
   // Local state
   const [editedContent, setEditedContent] = useState(content);
-  const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [aceEditor, setAceEditor] = useState<any>(null);
   
@@ -71,6 +70,8 @@ export function CodeEditor({
     setCurrentSearchIndex,
     setShowSearch,
     resetSearch,
+    setCursorPosition,
+    getCursorPosition,
   } = useEditorStore();
 
   const getFileExtension = () => {
@@ -96,29 +97,74 @@ export function CodeEditor({
     setEditedContent(content);
   }, [content]);
 
-  const handleEdit = () => {
-    setIsEditing(true);
-    setEditedContent(content);
-  };
-
-  const handleSave = async () => {
-    if (!onSave || !isEditing) return;
+  const handleSave = useCallback(async () => {
+    if (!onSave || isReadOnly || !isEditableFile) return;
     
     setIsSaving(true);
     try {
       await onSave(editedContent);
-      setIsEditing(false);
+      setIsSaving(false);
     } catch (error) {
       console.error("Failed to save:", error);
-    } finally {
       setIsSaving(false);
     }
-  };
+  }, [onSave, isReadOnly, isEditableFile, editedContent]);
 
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-    setEditedContent(content);
-  };
+  // Handle cursor position tracking
+  useEffect(() => {
+    if (!aceEditor) return;
+
+    // Restore cursor position for this file
+    const savedPosition = getCursorPosition(filePath);
+    if (savedPosition) {
+      setTimeout(() => {
+        aceEditor.gotoLine(savedPosition.row + 1, savedPosition.column, false);
+      }, 100);
+    }
+
+    // Add cursor change listener to save position
+    const handleCursorChange = () => {
+      const cursorPosition = aceEditor.getCursorPosition();
+      setCursorPosition(filePath, {
+        row: cursorPosition.row,
+        column: cursorPosition.column,
+      });
+    };
+
+    aceEditor.on('changeSelection', handleCursorChange);
+    aceEditor.on('changeCursor', handleCursorChange);
+
+    return () => {
+      // Save current cursor position when switching files
+      if (aceEditor.getCursorPosition) {
+        const cursorPosition = aceEditor.getCursorPosition();
+        setCursorPosition(filePath, {
+          row: cursorPosition.row,
+          column: cursorPosition.column,
+        });
+      }
+      
+      // Clean up listeners
+      aceEditor.off('changeSelection', handleCursorChange);
+      aceEditor.off('changeCursor', handleCursorChange);
+    };
+  }, [aceEditor, filePath, getCursorPosition, setCursorPosition]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+S or Cmd+S to save
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        handleSave();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleSave]);
 
   const handleContentChange = (newContent: string) => {
     setEditedContent(newContent);
@@ -161,9 +207,8 @@ export function CodeEditor({
 
   const handleSearch = useCallback((term: string) => {
     setSearchTerm(term);
-    const targetContent = isEditing ? editedContent : content;
-    performSearch(term, targetContent);
-  }, [content, editedContent, isEditing, performSearch, setSearchTerm]);
+    performSearch(term, editedContent);
+  }, [editedContent, performSearch, setSearchTerm]);
 
   const handleSearchNext = () => {
     if (searchResults.length > 0) {
@@ -189,7 +234,7 @@ export function CodeEditor({
 
   // Effect to handle search navigation in Ace Editor
   useEffect(() => {
-    if (aceEditor && searchResults.length > 0 && currentSearchIndex >= 0) {
+    if (aceEditor && searchResults.length > 0 && currentSearchIndex >= 0 && showSearch) {
       const targetLine = searchResults[currentSearchIndex];
       aceEditor.gotoLine(targetLine + 1, 0, true);
       aceEditor.scrollToLine(targetLine, true, true, () => {});
@@ -202,7 +247,7 @@ export function CodeEditor({
             if (aceEditor._searchMarker) {
               aceEditor.removeMarker(aceEditor._searchMarker);
             }
-            const currentContent = isEditing ? editedContent : content;
+            const currentContent = editedContent;
             const lines = currentContent.split('\n');
             const line = lines[targetLine];
             const index = line.toLowerCase().indexOf(searchTerm.toLowerCase());
@@ -216,56 +261,26 @@ export function CodeEditor({
         }
       }
     }
-  }, [aceEditor, searchResults, currentSearchIndex, searchTerm, isEditing, editedContent, content]);
+  }, [aceEditor, searchResults, currentSearchIndex, searchTerm, showSearch]);
 
 
-  const currentContent = isEditing ? editedContent : content;
+  const currentContent = editedContent;
 
   return (
     <div className={`flex flex-col h-full ${className}`}>
       {/* Toolbar */}
       <div className="flex items-center gap-1 p-2 border-b border-gray-200 bg-gray-50">
-        {isEditing && (
-          <span className="text-xs text-orange-600 mr-2">
-            Editing
-          </span>
-        )}
-        
-        {!isReadOnly && isEditableFile && !isEditing && (
+        {!isReadOnly && isEditableFile && (
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleEdit}
+            onClick={handleSave}
+            disabled={isSaving}
             className="p-1 h-auto"
-            title="Edit file"
+            title="Save changes (Ctrl+S)"
           >
-            <Edit className="w-4 h-4" />
+            <Save className="w-4 h-4" />
           </Button>
-        )}
-        
-        {isEditing && (
-          <>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleSave}
-              disabled={isSaving}
-              className="p-1 h-auto"
-              title="Save changes"
-            >
-              <Save className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleCancelEdit}
-              disabled={isSaving}
-              className="p-1 h-auto"
-              title="Cancel editing"
-            >
-              <XCircle className="w-4 h-4" />
-            </Button>
-          </>
         )}
         
         <Button
@@ -346,15 +361,15 @@ export function CodeEditor({
           mode={getAceMode}
           theme={isDarkTheme ? "monokai" : "github"}
           value={currentContent}
-          readOnly={!isEditing || isReadOnly}
+          readOnly={isReadOnly || !isEditableFile}
           fontSize={fontSize}
           width="100%"
           height="100%"
           showPrintMargin={false}
           showGutter={showLineNumbers}
-          highlightActiveLine={isEditing}
+          highlightActiveLine={!isReadOnly && isEditableFile}
           setOptions={{
-            enableBasicAutocompletion: isEditing,
+            enableBasicAutocompletion: !isReadOnly && isEditableFile,
             enableLiveAutocompletion: false,
             enableSnippets: false,
             showLineNumbers: showLineNumbers,
@@ -363,7 +378,7 @@ export function CodeEditor({
             useWorker: false, // Disable worker to avoid console errors
           }}
           onChange={(value) => {
-            if (isEditing) {
+            if (!isReadOnly && isEditableFile) {
               handleContentChange(value);
             }
           }}

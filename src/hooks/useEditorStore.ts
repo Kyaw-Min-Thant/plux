@@ -1,5 +1,10 @@
 import { create } from 'zustand';
 
+interface CursorPosition {
+  row: number;
+  column: number;
+}
+
 interface EditorState {
   // Theme settings
   isDarkTheme: boolean;
@@ -23,11 +28,16 @@ interface EditorState {
   setFontSize: (size: number) => void;
   setTabSize: (size: number) => void;
   
+  // Cursor position tracking
+  cursorPositions: Map<string, CursorPosition>;
+  setCursorPosition: (filePath: string, position: CursorPosition) => void;
+  getCursorPosition: (filePath: string) => CursorPosition | null;
+  
   // Reset functions
   resetSearch: () => void;
 }
 
-export const useEditorStore = create<EditorState>((set) => ({
+export const useEditorStore = create<EditorState>((set, get) => ({
   // Theme settings
   isDarkTheme: false,
   setIsDarkTheme: (isDark) => set({ isDarkTheme: isDark }),
@@ -49,6 +59,19 @@ export const useEditorStore = create<EditorState>((set) => ({
   setShowLineNumbers: (show) => set({ showLineNumbers: show }),
   setFontSize: (size) => set({ fontSize: size }),
   setTabSize: (size) => set({ tabSize: size }),
+  
+  // Cursor position tracking
+  cursorPositions: new Map(),
+  setCursorPosition: (filePath, position) => {
+    const state = get();
+    const newPositions = new Map(state.cursorPositions);
+    newPositions.set(filePath, position);
+    set({ cursorPositions: newPositions });
+  },
+  getCursorPosition: (filePath) => {
+    const state = get();
+    return state.cursorPositions.get(filePath) || null;
+  },
   
   // Reset functions
   resetSearch: () => set({ 
